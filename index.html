@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broiler RCA Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+
+
+:root{
+  --bg:#080c14;--s1:#0f1520;--s2:#141d2f;--s3:#1b2540;
+  --b1:#1e2d48;--b2:#283d60;
+  --tx:#dde4f5;--mu:#5e7299;
+  --ac:#4b80ff;--ac2:#00cca8;
+  --g:#00cca8;--w:#ffb940;--p:#ff3f5e;
+  --late:#a87ff5;--early:#ff8c3a;--whole:#ff3f5e;--norm:#00cca8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:13px;}
+
+/* ════ DASHBOARD ════ */
+#dashboard{display:none;}
+
+/* Global filter bar */
+#gfbar{position:sticky;top:0;z-index:60;background:var(--s1);border-bottom:1px solid var(--b1);
+  padding:9px 22px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#gfbar .logo{font-size:18px;}
+#gfbar .title{font-weight:700;font-size:13px;margin-right:6px;}
+.gfl{color:var(--mu);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+select{background:var(--s2);border:1px solid var(--b1);color:var(--tx);padding:5px 9px;border-radius:6px;font-size:11px;cursor:pointer;outline:none;}
+select:focus{border-color:var(--ac);}
+#gf-count{margin-left:auto;font-size:11px;color:var(--mu);background:var(--s2);border:1px solid var(--b1);padding:5px 11px;border-radius:6px;white-space:nowrap;}
+.btn-sm{background:none;border:1px solid var(--b2);color:var(--mu);padding:5px 11px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;transition:.2s;}
+.btn-sm:hover{color:var(--tx);border-color:var(--ac);}
+.btn-rel{background:rgba(75,128,255,.1);border:1px solid rgba(75,128,255,.3);color:#7ba8ff;padding:5px 11px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;transition:.2s;}
+.btn-rel:hover{background:rgba(75,128,255,.2);}
+
+/* Breeder class badge */
+.bc-young{background:rgba(0,204,168,.12);color:#1fffd6;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}
+.bc-prime{background:rgba(75,128,255,.12);color:#7ba8ff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}
+.bc-old{background:rgba(255,140,58,.12);color:#ffb076;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}
+.bc-unk{background:rgba(94,114,153,.12);color:#8a9fc4;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;}
+
+/* Nav */
+#navtabs{display:flex;background:var(--s1);border-bottom:1px solid var(--b1);padding:0 22px;overflow-x:auto;position:sticky;top:48px;z-index:55;}
+.ntab{padding:10px 14px;cursor:pointer;font-size:12px;font-weight:500;color:var(--mu);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.ntab:hover{color:var(--tx);}
+.ntab.active{color:var(--ac);border-bottom-color:var(--ac);}
+
+/* Main */
+#main{padding:18px 22px;}
+.tp{display:none;}.tp.active{display:block;}
+
+/* KPI */
+.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:14px;}
+.kc{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:13px 15px;}
+.kc-lbl{color:var(--mu);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.kc-val{font-size:23px;font-weight:800;line-height:1;}
+.kc-sub{color:var(--mu);font-size:10px;margin-top:3px;}
+
+/* Cards */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:15px 17px;margin-bottom:13px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:13px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:13px;}
+.stitle{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px;display:flex;align-items:center;gap:7px;}
+.stitle::before{content:'';display:block;width:3px;height:12px;background:linear-gradient(180deg,var(--ac),var(--ac2));border-radius:2px;}
+.ssub{color:var(--mu);font-size:11px;margin:-7px 0 11px;line-height:1.5;}
+
+/* RC cards */
+.rcgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px;}
+.rcc{border-radius:10px;padding:12px 14px;border:1px solid;}
+.rcc.norm{background:rgba(0,204,168,.07);border-color:rgba(0,204,168,.2);}
+.rcc.late{background:rgba(168,127,245,.07);border-color:rgba(168,127,245,.2);}
+.rcc.early{background:rgba(255,140,58,.07);border-color:rgba(255,140,58,.2);}
+.rcc.whole{background:rgba(255,63,94,.07);border-color:rgba(255,63,94,.2);}
+.rcc-n{font-size:30px;font-weight:800;line-height:1;}
+.rcc.norm .rcc-n{color:var(--norm);}.rcc.late .rcc-n{color:var(--late);}
+.rcc.early .rcc-n{color:var(--early);}.rcc.whole .rcc-n{color:var(--whole);}
+.rcc-lbl{font-size:11px;font-weight:600;margin-top:3px;}
+.rcc-act{font-size:10px;color:var(--mu);margin-top:3px;line-height:1.4;}
+
+/* Pills */
+.pill{display:inline-block;padding:2px 7px;border-radius:7px;font-size:10px;font-weight:600;}
+.pn{background:rgba(0,204,168,.12);color:#1fffd6;}.pl{background:rgba(168,127,245,.15);color:#c4a8ff;}
+.pe{background:rgba(255,140,58,.15);color:#ffb076;}.pw{background:rgba(255,63,94,.15);color:#ff8099;}
+.pcg{background:rgba(255,185,64,.1);color:#ffb940;}.pint{background:rgba(0,204,168,.1);color:#1fffd6;}
+
+/* Meters */
+.mtr-row{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(30,45,72,.5);}
+.mtr-row:last-child{border-bottom:none;}
+.mtr-n{min-width:130px;font-size:11px;color:var(--mu);}
+.mtr-bar{flex:1;margin:0 10px;height:5px;background:var(--s3);border-radius:3px;overflow:hidden;}
+.mtr-fill{height:100%;border-radius:3px;}
+.mtr-v{min-width:50px;font-size:11px;font-weight:700;text-align:right;}
+
+/* Canvas */
+canvas{display:block;}
+
+/* Tables */
+.tw{overflow-x:auto;border-radius:9px;border:1px solid var(--b1);}
+.sh{max-height:440px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:var(--s2);color:var(--mu);font-weight:600;padding:8px 10px;text-align:left;white-space:nowrap;
+  border-bottom:1px solid var(--b1);font-size:10px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;z-index:1;}
+thead th.so{cursor:pointer;}thead th.so:hover{color:var(--tx);}
+tbody tr{border-bottom:1px solid rgba(30,45,72,.5);transition:background .1s;}
+tbody tr:hover{background:rgba(75,128,255,.04);}
+tbody td{padding:7px 10px;white-space:nowrap;}
+
+/* Legend */
+.legrow{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.legi{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);}
+.legdot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+/* Insight */
+.ins{background:var(--s2);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:11px;font-size:11px;line-height:1.6;color:var(--mu);}
+.ins b{color:var(--tx);}.ins.warn{border-left-color:var(--w);}.ins.bad{border-left-color:var(--p);}
+
+/* Tooltip */
+#tt{position:fixed;display:none;background:var(--s1);border:1px solid var(--b2);padding:9px 13px;border-radius:9px;font-size:11px;pointer-events:none;z-index:200;max-width:230px;line-height:1.8;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+
+/* Stat compare rows */
+.cmp-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(30,45,72,.4);}
+.cmp-row:last-child{border-bottom:none;}
+.cmp-lbl{min-width:120px;font-size:11px;color:var(--mu);}
+.cmp-bars{flex:1;display:flex;flex-direction:column;gap:3px;}
+.cmp-bar-row{display:flex;align-items:center;gap:6px;}
+.cmp-bar-lbl{font-size:10px;color:var(--mu);min-width:36px;text-align:right;}
+.cmp-bar-track{flex:1;height:10px;background:var(--s3);border-radius:3px;overflow:hidden;}
+.cmp-bar-fill{height:100%;border-radius:3px;}
+.cmp-bar-val{font-size:10px;font-weight:700;min-width:38px;}
+
+@media(max-width:860px){.g2,.g3,.g4,.rcgrid{grid-template-columns:1fr 1fr;}}
+@media(max-width:540px){.g2,.g3,.g4,.rcgrid{grid-template-columns:1fr;}}
+
+
+
+/* ════ UPLOAD ════ */
+#upload-screen{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:40px 20px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(75,128,255,.12) 0%,transparent 70%),var(--bg);
+}
+.up-logo{font-size:52px;margin-bottom:14px;filter:drop-shadow(0 0 28px rgba(75,128,255,.4));}
+.up-title{font-size:32px;font-weight:800;letter-spacing:-.6px;margin-bottom:6px;
+  background:linear-gradient(135deg,#dde4f5 0%,#7ba8ff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.up-sub{color:var(--mu);font-size:14px;margin-bottom:44px;text-align:center;max-width:480px;line-height:1.7;}
+.drop-zone{width:100%;max-width:520px;border:2px dashed var(--b2);border-radius:20px;
+  padding:52px 40px;text-align:center;cursor:pointer;transition:all .25s;
+  background:var(--s1);}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--ac);background:rgba(75,128,255,.06);}
+.drop-icon{font-size:44px;margin-bottom:12px;}
+.drop-lbl{font-size:17px;font-weight:700;margin-bottom:6px;}
+.drop-sub{color:var(--mu);font-size:12px;margin-bottom:22px;}
+.btn-up{display:inline-flex;align-items:center;gap:8px;background:var(--ac);color:#fff;
+  padding:12px 26px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;
+  cursor:pointer;border:none;transition:all .2s;box-shadow:0 4px 20px rgba(75,128,255,.35);}
+.btn-up:hover{background:#6b96ff;transform:translateY(-1px);}
+#fi{display:none;}
+.fmt-hint{margin-top:26px;background:var(--s2);border:1px solid var(--b1);
+  border-radius:12px;padding:18px 22px;max-width:520px;width:100%;}
+.fh-t{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:10px;}
+.stag{background:var(--s3);border:1px solid var(--b2);border-radius:6px;
+  padding:4px 10px;font-size:11px;color:#7ba8ff;font-family:monospace;}
+.err{margin-top:16px;background:rgba(255,63,94,.1);border:1px solid rgba(255,63,94,.3);
+  border-radius:10px;padding:12px 16px;color:#ff8099;font-size:12px;
+  max-width:520px;width:100%;display:none;}
+
+</style>
+</head>
+<body>
+<!-- ════════ UPLOAD SCREEN ════════ -->
+<div id="upload-screen">
+  <div class="up-logo">🐔</div>
+  <div class="up-title">Broiler RCA Dashboard</div>
+  <div class="up-sub">Upload your performance monitoring Excel file. The full dashboard — mortality, feed, breeder analysis, hatchery metrics, and more — builds instantly with all analysis and charts.</div>
+  <div class="drop-zone" id="dz">
+    <div class="drop-icon">📊</div>
+    <div class="drop-lbl">Drop your Excel file here</div>
+    <div class="drop-sub">Supports .xlsx and .xls</div>
+    <label class="btn-up" for="fi"><span>📁</span> Browse File</label>
+    <input type="file" id="fi" accept=".xlsx,.xls">
+  </div>
+  <div class="fmt-hint">
+    <div class="fh-t">📋 Required Sheets</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <span class="stag">MORTALITY</span><span class="stag">RAW DATA</span>
+    </div>
+    <div style="color:var(--mu);font-size:11px;line-height:1.8;">
+      <b style="color:var(--tx)">MORTALITY</b> — One row per house/batch. Needs: Hatch #, Placed Population, 7D/Late/Total Mortality %, Breeder Age, Breeder Group, DOA<br>
+      <b style="color:var(--tx)">RAW DATA</b> — One row per pen. Needs: FCR, ADG, ALW, BPI, Feed Source, Body Weights, Egg Age, Growth Rate
+    </div>
+  </div>
+  <div class="err" id="err"></div>
+</div>
+
+<!-- ════════ DASHBOARD ════════ -->
+<div id="dashboard" style="display:none">
+
+  <!-- Global Filters -->
+  <div id="gfbar">
+    <span class="logo">🐔</span><span class="title">Broiler RCA</span>
+    <span class="gfl">Farm</span><select id="gf-farm"><option value="">All Farms</option></select>
+    <span class="gfl">Feed</span><select id="gf-feed"><option value="">All Feeds</option></select>
+    <span class="gfl">Management</span>
+    <select id="gf-mgmt"><option value="">All</option><option value="CG">Contract Grower</option><option value="INTERNAL">Internal</option></select>
+    <span class="gfl">Cycle</span><select id="gf-grow"><option value="">All Cycles</option></select>
+    <span class="gfl">Root Cause</span>
+    <select id="gf-rc"><option value="">All</option><option>Normal</option><option>Late Issue</option><option>Early Issue</option><option>Whole Cycle Issue</option></select>
+    <span class="gfl">Breeder Age</span>
+    <select id="gf-breed"><option value="">All</option><option value="Young">Young (&lt;30wk)</option><option value="Prime">Prime (30–45wk)</option><option value="Old">Old (&gt;45wk)</option></select>
+    <button class="btn-sm" onclick="resetFilters()">✕ Reset</button>
+    <button class="btn-rel" onclick="resetToUpload()" style="background:rgba(75,128,255,.1);border:1px solid rgba(75,128,255,.3);color:#7ba8ff;padding:5px 11px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;">⬆ New File</button>
+    <div id="gf-count">— houses</div>
+    
+  </div>
+
+  <!-- Nav -->
+  <div id="navtabs">
+    <div class="ntab active" data-tab="overview">📊 Summary</div>
+    <div class="ntab" data-tab="mortality">☠ Mortality</div>
+    <div class="ntab" data-tab="livability">💚 Livability</div>
+    <div class="ntab" data-tab="feed">🌾 Feed</div>
+    <div class="ntab" data-tab="rca">🔍 Root Cause</div>
+    <div class="ntab" data-tab="scatter">🎯 Scatter</div>
+    <div class="ntab" data-tab="cycle">📈 Cycle Trend</div>
+    <div class="ntab" data-tab="breeder">🐓 Breeder Analysis</div>
+    <div class="ntab" data-tab="hatchery">🥚 Hatchery Metrics</div>
+    <div class="ntab" data-tab="mgmt">🏭 Management</div>
+    <div class="ntab" data-tab="table">📋 House Detail</div>
+  </div>
+
+  <div id="main">
+
+    <!-- SUMMARY -->
+    <div class="tp active" id="tp-overview">
+      <div class="krow" id="ov-kpis"></div>
+      <div class="g2">
+        <div class="card"><div class="stitle">Mortality Status</div><div id="ov-mmtrs"></div></div>
+        <div class="card"><div class="stitle">Performance Status</div><div id="ov-pmtrs"></div></div>
+      </div>
+      <div class="card"><div class="stitle">Root Cause Summary</div><div class="rcgrid" id="ov-rc"></div></div>
+    </div>
+
+    <!-- MORTALITY (COMPREHENSIVE) -->
+    <div class="tp" id="tp-mortality">
+      <!-- Overview stats -->
+      <div class="g4" id="mort-kpis"></div>
+      <!-- Stacked bar -->
+      <div class="card">
+        <div class="stitle">A — Mortality Breakdown per House (7D + Late Stacked)</div>
+        <div class="ssub">Each bar = one house sorted by Total Mort %. Orange = 7D, Purple = Late. Threshold lines at 4.5% (good) and 6% (poor). Red ! = flagged house.</div>
+        <canvas id="ch-mortstack" height="300"></canvas>
+      <div id="mort-analysis" style="margin-top:12px;padding:10px 14px;background:var(--s2);border-left:3px solid var(--p);border-radius:0 8px 8px 0;font-size:11px;color:var(--mu);line-height:1.7;"></div>
+      </div>
+      <!-- DOA analysis -->
+      <div class="g2">
+        <div class="card">
+          <div class="stitle">DOA % per House</div>
+          <div class="ssub">Dead on Arrival as % of Total Delivered. Not included in mortality — hatchery quality indicator.</div>
+          <canvas id="ch-doa" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="stitle">Mortality Count Breakdown</div>
+          <div class="ssub">Average absolute counts: DOA, 7D deaths, Late deaths, Total deaths per house.</div>
+          <canvas id="ch-mort-counts" height="220"></canvas>
+        </div>
+      </div>
+      <!-- Mortality by breeder class -->
+      <div class="g2">
+        <div class="card">
+          <div class="stitle">7D Mort % by Breeder Class</div>
+          <div class="ssub">Does breeder age affect early mortality?</div>
+          <canvas id="ch-7d-breed" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="stitle">Late Mort % by Breeder Class</div>
+          <div class="ssub">Does breeder age affect late-cycle survival?</div>
+          <canvas id="ch-late-breed" height="200"></canvas>
+        </div>
+      </div>
+      <!-- By farm -->
+      <div class="g2">
+        <div class="card"><div class="stitle">Total Mort % by Farm</div><canvas id="ch-tot-farm" height="220"></canvas></div>
+        <div class="card"><div class="stitle">Late Mort % by Farm</div><canvas id="ch-late-farm" height="220"></canvas></div>
+      </div>
+      <!-- Late share analysis -->
+      <div class="card">
+        <div class="stitle">Late Mortality Share % — All Houses</div>
+        <div class="ssub">Late Share = Late Deaths ÷ Total Deaths. &gt;80% = mortality concentrated in back-half of cycle — late management / disease signal.</div>
+        <canvas id="ch-lateshare" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- LIVABILITY -->
+    <div class="tp" id="tp-livability">
+      <div class="card">
+        <div class="stitle">E — Livability % per House</div>
+        <div class="ssub">Livability = 100% − Total Mort %. Target ≥ 95.5%. Sorted worst to best.</div>
+        <canvas id="ch-livability" height="300"></canvas>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="stitle">Avg Livability % by Farm</div><canvas id="ch-liv-farm" height="220"></canvas></div>
+        <div class="card"><div class="stitle">Livability Distribution</div><canvas id="ch-liv-hist" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <!-- FEED -->
+    <div class="tp" id="tp-feed">
+      <div id="feed-kpis" class="g3" style="margin-bottom:13px;"></div>
+      <div id="feed-ins"></div>
+      <div class="card">
+        <div class="stitle">B — Feed: Mortality % vs BPI (Dual Axis)</div>
+        <div class="ssub">Bars = mortality (left axis). Line = BPI at actual scale (right axis). No division.</div>
+        <div class="legrow" id="feed-leg"></div>
+        <canvas id="ch-feed-main" height="240"></canvas>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="stitle">FCR by Feed Supplier</div><canvas id="ch-feed-fcr" height="200"></canvas></div>
+        <div class="card"><div class="stitle">BPI Strip — Every House by Feed</div><canvas id="ch-feed-strip" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="stitle">BPI Heatmap — Feed × Farm</div>
+        <div class="ssub">Color = BPI band. Green ≥380, Yellow 320–379, Red &lt;320.</div>
+        <div class="tw" id="feed-heatmap"></div>
+      </div>
+    </div>
+
+    <!-- ROOT CAUSE -->
+    <div class="tp" id="tp-rca">
+      <div class="rcgrid" id="rca-rc"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="stitle">C — Root Cause Distribution</div>
+          <canvas id="ch-rc-pie" width="200" height="200" style="width:200px;height:200px;display:block;margin:0 auto 12px;"></canvas>
+          <div id="rc-pie-leg" class="legrow" style="justify-content:center;"></div>
+        </div>
+        <div class="card">
+          <div class="stitle">Decision Logic</div>
+          <div style="font-size:11px;line-height:2;color:var(--mu);">
+            <div><b style="color:#ff8c3a;">🔶 Early Issue</b> — 7D &gt;2% and Late ≤3%<br><small>Brooding, chick quality, water, temp in week 1</small></div>
+            <div style="margin-top:8px;"><b style="color:#a87ff5;">⚠ Late Issue</b> — 7D ≤1.5% and Late &gt;5%<br><small>Feed, disease challenge mid-cycle, heat, stocking</small></div>
+            <div style="margin-top:8px;"><b style="color:#ff3f5e;">🚨 Whole Cycle</b> — 7D &gt;2% and Late &gt;5%<br><small>Compound: poor placement + ongoing issues</small></div>
+            <div style="margin-top:8px;"><b style="color:#00cca8;">✅ Normal</b> — All within thresholds<br><small>Maintain practices, protect gains, keep monitoring</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="stitle">Flagged Houses</div>
+        <div class="tw sh"><table><thead><tr>
+          <th>Farm</th><th>House</th><th>Batch</th><th>Mgmt</th><th>Feed</th><th>Cycle</th><th>Breeder</th>
+          <th>7D%</th><th>Late%</th><th>Late Share%</th><th>Total%</th><th>BPI</th><th>Root Cause</th><th>Action</th>
+        </tr></thead><tbody id="prob-body"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- SCATTER -->
+    <div class="tp" id="tp-scatter">
+      <div class="card">
+        <div class="stitle">D — Scatter: 7D Mort % vs Late Mort % — Color = Feed Supplier</div>
+        <div class="ssub">Each dot = one house. Color = Feed. Ring outline = Root Cause. Hover for details.</div>
+        <div class="legrow" id="sc-leg"></div>
+        <canvas id="ch-scatter" height="460"></canvas>
+      <div id="sc-analysis" style="margin-top:12px;padding:10px 14px;background:var(--s2);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;font-size:11px;color:var(--mu);line-height:1.7;"></div>
+      </div>
+    </div>
+
+    <!-- CYCLE -->
+    <div class="tp" id="tp-cycle">
+      <div class="card">
+        <div class="stitle">F — Total Mort % by Grow/Cycle</div>
+        <div class="legrow" id="cy-leg"></div>
+        <canvas id="ch-cy-mort" height="260"></canvas>
+      </div>
+      <div class="card">
+        <div class="stitle">BPI per Cycle by Feed</div>
+        <div class="legrow" id="cy-bpi-leg"></div>
+        <canvas id="ch-cy-bpi" height="220"></canvas>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="stitle">Livability % per Cycle</div><canvas id="ch-cy-liv" height="180"></canvas></div>
+        <div class="card"><div class="stitle">FCR per Cycle</div><canvas id="ch-cy-fcr" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <!-- BREEDER ANALYSIS -->
+    <div class="tp" id="tp-breeder">
+      <!-- Breeder class KPIs -->
+      <div class="g3" id="breed-kpis"></div>
+      <div id="breed-ins"></div>
+
+      <!-- Mortality comparison by breeder class -->
+      <div class="card">
+        <div class="stitle">Mortality Comparison — Young vs Prime vs Old Breeders</div>
+        <div class="ssub">How does breeder flock age affect broiler mortality? Young &lt;30wk, Prime 30–45wk, Old &gt;45wk.</div>
+        <div class="legrow" id="breed-mort-leg"></div>
+        <canvas id="ch-breed-mort" height="220"></canvas>
+      </div>
+
+      <!-- Performance comparison by breeder class -->
+      <div class="card">
+        <div class="stitle">Performance Comparison — Young vs Prime vs Old</div>
+        <div class="ssub">BPI, FCR, and ADG broken down by breeder age class.</div>
+        <div class="legrow" id="breed-perf-leg"></div>
+        <canvas id="ch-breed-perf" height="220"></canvas>
+      </div>
+
+      <!-- BPI by breeder class - strip chart -->
+      <div class="card">
+        <div class="stitle">BPI Distribution by Breeder Class</div>
+        <div class="ssub">Every house as a dot. Vertical bar = average. Reveals consistency within each breeder age group.</div>
+        <canvas id="ch-breed-bpi-strip" height="160"></canvas>
+      </div>
+
+      <!-- Breeder age vs mortality scatter -->
+      <div class="card">
+        <div class="stitle">Breeder Age (weeks) vs Total Mort % — Correlation View</div>
+        <div class="ssub">Each dot = one house. Does mortality trend up or down as breeders age? Color = Breeder Class.</div>
+        <canvas id="ch-breed-scatter" height="280"></canvas>
+      <div id="breed-scatter-analysis" style="margin-top:12px;padding:10px 14px;background:var(--s2);border-left:3px solid var(--ac2);border-radius:0 8px 8px 0;font-size:11px;color:var(--mu);line-height:1.7;"></div>
+      </div>
+
+      <!-- Detail table -->
+      <div class="card">
+        <div class="stitle">House Detail by Breeder Class</div>
+        <div class="tw sh"><table><thead><tr>
+          <th>Farm</th><th>House</th><th>Batch</th><th>Breeder Group</th><th>Breeder Age (wk)</th><th>Breeder Class</th>
+          <th>7D%</th><th>Late%</th><th>Total%</th><th>Livability%</th><th>BPI</th><th>FCR</th><th>Root Cause</th>
+        </tr></thead><tbody id="breed-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- HATCHERY METRICS -->
+    <div class="tp" id="tp-hatchery">
+      <!-- KPIs -->
+      <div class="g4" id="hatch-kpis"></div>
+      <div id="hatch-ins"></div>
+
+      <!-- DOA comprehensive -->
+      <div class="card">
+        <div class="stitle">DOA % per House — Hatchery Quality Indicator</div>
+        <div class="ssub">DOA = Dead on Arrival. Measured as % of Total Delivered (not Placed Population). High DOA indicates hatchery or transit issues. Target &lt;0.5%.</div>
+        <canvas id="ch-hatch-doa" height="280"></canvas>
+      </div>
+
+      <div class="g2">
+        <div class="card">
+          <div class="stitle">DOA % by Farm</div>
+          <div class="ssub">Which farms receive the most DOAs?</div>
+          <canvas id="ch-doa-farm" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="stitle">DOA % by Breeder Class</div>
+          <div class="ssub">Does breeder age affect hatch quality?</div>
+          <canvas id="ch-doa-breed" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Body weight progression -->
+      <div class="card">
+        <div class="stitle">Chick Body Weight Progression — Day 0 → Day 7 → Day 21</div>
+        <div class="ssub">Average body weight per milestone by farm. Strong Day 7 BW predicts better cycle performance.</div>
+        <div class="legrow" id="bw-leg"></div>
+        <canvas id="ch-bw-farm" height="240"></canvas>
+      </div>
+
+      <!-- Egg age analysis -->
+      <div class="g2">
+        <div class="card">
+          <div class="stitle">Egg Age (days) by Farm</div>
+          <div class="ssub">Average egg age at setting. Fresher eggs (lower age) generally hatch better.</div>
+          <canvas id="ch-egg-farm" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="stitle">Egg Age vs DOA % — Correlation</div>
+          <div class="ssub">Does older egg age lead to higher DOA?</div>
+          <canvas id="ch-egg-doa" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Day 0 BW vs 7D Mort -->
+      <div class="card">
+        <div class="stitle">Day 0 Chick Weight (g) vs 7D Mortality % — Correlation</div>
+        <div class="ssub">Heavier day-old chicks should show lower early mortality. Color = Breeder Class.</div>
+        <canvas id="ch-d0-mort" height="260"></canvas>
+      </div>
+
+      <!-- Growth rate -->
+      <div class="card">
+        <div class="stitle">Growth Rate by Farm</div>
+        <div class="ssub">Average daily gain (g/day) across the grow period per farm.</div>
+        <canvas id="ch-growth-farm" height="200"></canvas>
+      </div>
+
+      <!-- Hatchery detail table -->
+      <div class="card">
+        <div class="stitle">Hatchery & Chick Quality — Full Table</div>
+        <div class="tw sh"><table><thead><tr>
+          <th>Farm</th><th>House</th><th>Batch</th><th>Breeder Group</th><th>Breeder Age (wk)</th><th>Breeder Class</th>
+          <th>Placed</th><th>DOA</th><th>DOA %</th><th>Egg Age (d)</th>
+          <th>Day 0 BW (g)</th><th>Day 7 BW (g)</th><th>Day 21 BW (g)</th><th>Growth Rate</th>
+          <th>7D Mort %</th><th>Total Mort %</th>
+        </tr></thead><tbody id="hatch-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- MANAGEMENT -->
+    <div class="tp" id="tp-mgmt">
+      <div id="mgmt-kpis" class="g2" style="margin-bottom:13px;"></div>
+      <div id="mgmt-ins"></div>
+      <div class="g2">
+        <div class="card"><div class="stitle">Mortality — CG vs Internal</div><canvas id="ch-mg-mort" height="200"></canvas></div>
+        <div class="card"><div class="stitle">Performance — CG vs Internal</div><canvas id="ch-mg-perf" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="stitle">BPI Strip — Every House by Management Type</div>
+        <canvas id="ch-mg-strip" height="130"></canvas>
+      </div>
+    </div>
+
+    <!-- HOUSE DETAIL -->
+    <div class="tp" id="tp-table">
+      <div class="card">
+        <div class="stitle">All Houses — Full Detail Table</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:11px;">
+          <span style="color:var(--mu);font-size:11px;">Sort:</span>
+          <select id="tbl-sort" onchange="renderDetailTable()">
+            <option value="">Default</option>
+            <option value="Total_Mort_pct">Total Mort % ↓</option>
+            <option value="Late_Mort_pct">Late Mort % ↓</option>
+            <option value="7D_Mort_pct">7D Mort % ↓</option>
+            <option value="DOA_pct">DOA % ↓</option>
+            <option value="BPI_asc">BPI ↑ (worst)</option>
+            <option value="BPI">BPI ↓ (best)</option>
+            <option value="FCR">FCR ↓</option>
+            <option value="Breeder_Age">Breeder Age ↓</option>
+          </select>
+        </div>
+        <div class="tw sh" style="max-height:520px;">
+          <table><thead><tr>
+            <th>Batch</th><th>Farm</th><th>House</th><th>Mgmt</th><th>Feed</th><th>Cycle</th>
+            <th>Breeder Class</th><th>Breeder Age</th>
+            <th>7D Mort %</th><th>Late Mort %</th><th>Late Share%</th><th>Total Mort %</th>
+            <th>Livability%</th><th>DOA%</th><th>FCR</th><th>ADG(g)</th><th>ALW(kg)</th><th>BPI</th>
+            <th>Root Cause</th><th>Action</th>
+          </tr></thead><tbody id="detail-tbody"></tbody></table>
+        </div>
+        <div id="detail-count" style="color:var(--mu);font-size:11px;margin-top:6px;"></div>
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end dashboard -->
+
+
+
+
+
+<div id="tt"></div>
+
+<script>
+
+// ════ UPLOAD ENGINE ════
+const dz=document.getElementById('dz'),fi=document.getElementById('fi'),errEl=document.getElementById('err');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);});
+fi.addEventListener('change',e=>{if(e.target.files[0])processFile(e.target.files[0]);});
+function showErr(m){errEl.textContent='⚠️ '+m;errEl.style.display='block';}
+function resetToUpload(){
+  document.getElementById('upload-screen').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+  errEl.style.display='none';fi.value='';
+}
+function processFile(file){
+  errEl.style.display='none';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
+      const sn=wb.SheetNames,find=n=>sn.find(s=>s.toUpperCase().includes(n.toUpperCase()));
+      const mS=find('MORTALITY'),rS=find('RAW');
+      if(!mS){showErr('Cannot find MORTALITY sheet.');return;}
+      if(!rS){showErr('Cannot find RAW DATA sheet.');return;}
+      const mRows=XLSX.utils.sheet_to_json(wb.Sheets[mS],{defval:null});
+      const rRows=XLSX.utils.sheet_to_json(wb.Sheets[rS],{defval:null});
+      if(!mRows.length){showErr('MORTALITY sheet is empty.');return;}
+      const DATA=buildDataset(mRows,rRows);
+      if(!DATA.length){showErr('No valid rows. Check HATCH # column exists.');return;}
+      initDashboard(DATA,file.name);
+    }catch(e){showErr('Error reading file: '+e.message);}
+  };
+  r.readAsBinaryString(file);
+}
+
+// ── Column finder ──
+function col(row,...names){
+  const keys=Object.keys(row);
+  for(const n of names){
+    const found=keys.find(k=>k.toUpperCase().replace(/[\s#_%]/g,'').includes(n.toUpperCase().replace(/[\s#_%]/g,'')));
+    if(found!==undefined&&row[found]!==null&&row[found]!==undefined)return row[found];
+  }return null;
+}
+const num=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
+
+// ── Build dataset from uploaded Excel ──
+function buildDataset(mRows,rRows){
+  const perf={};
+  rRows.forEach(r=>{
+    const b=num(col(r,'HATCH#','HATCHNO','HATCH'));if(!b)return;
+    if(!perf[b]){perf[b]={FCR:num(col(r,'FCR')),ALW:num(col(r,'ALW')),BPI:num(col(r,'BPI')),
+      Feed:col(r,'FEEDSOURCE','FEED SOURCE','FEED'),Grow:num(col(r,'GROW','GROWNO','CYCLE')),
+      D0:[],D7:[],D21:[],ADGs:[],EggAges:[],GR:null};}
+    const adg=num(col(r,'ADG(0-21)','ADG'));if(adg&&adg>0)perf[b].ADGs.push(adg);
+    const d0=num(col(r,'DAY0BW','DAY 0 BW'));if(d0)perf[b].D0.push(d0);
+    const d7=num(col(r,'DAY7BW','DAY 7 BW'));if(d7)perf[b].D7.push(d7);
+    const d21=num(col(r,'DAY21BW','DAY 21 BW'));if(d21&&d21>0)perf[b].D21.push(d21);
+    const ea=num(col(r,'EGAGE','EGG AGE','EGGAGE'));if(ea)perf[b].EggAges.push(ea);
+    const gr=num(col(r,'GROWTHRATE','GROWTH RATE'));if(gr&&!perf[b].GR)perf[b].GR=gr;
+  });
+  const mean=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  Object.values(perf).forEach(p=>{
+    p.ADG=mean(p.ADGs);p.Day0_BW=mean(p.D0);p.Day7_BW=mean(p.D7);
+    p.Day21_BW=mean(p.D21);p.Egg_Age=mean(p.EggAges);
+  });
+
+  const DATA=[];
+  mRows.forEach(r=>{
+    const b=num(col(r,'HATCH#','HATCHNO','HATCH'));if(!b)return;
+    const placed=num(col(r,'PLACEDPOPULATION','PLACED POPULATION'));if(!placed||placed===0)return;
+    const m7p=num(col(r,'7DMortality%','7D Mortality %'));
+    const mTp=num(col(r,'TOTALMORTALITY%','TOTAL MORTALITY %'));
+    const mLp=num(col(r,'LATEMORTALITY%','LATE MORTALITY %'));
+    // These are stored as decimals in the file (0.0109 = 1.09%) — multiply by 100
+    const d7=m7p!=null?(m7p*100):0;
+    const dl=mLp!=null?(mLp*100):0;
+    const dT=mTp!=null?(mTp*100):0;
+    const livR=num(col(r,'LIVABILITY'));
+    const liv=livR!=null?(livR>1?livR:livR*100):(100-dT);
+    const lsS=num(col(r,'LATEMORTSHARE','LATE MORT SHARE'));
+    const doaP=num(col(r,'DOA%','DOA %'));  // already in % format
+    const bAge=num(col(r,'BREEDERA','BREEDER AGE'));
+    const bGrp=col(r,'BREEDERGROUP','BREEDER GROUP')||'';
+    // User classification: Young <=35wk, Prime 36-50wk, Old 51+wk
+    const bCls=bAge==null?'Unknown':bAge<=35?'Young':bAge<=50?'Prime':'Old';
+    const rc=d7>2&&dl>5?'Whole Cycle Issue':d7>2&&dl<=3?'Early Issue':d7<=1.5&&dl>5?'Late Issue':'Normal';
+    const p=perf[b]||{};
+    const doaC=num(col(r,'DOA'));
+    DATA.push({
+      Batch:b,Farm:col(r,'HATCHLOCATION','HATCH LOCATION','FARM')||'Unknown',
+      House:col(r,'HOUSE#','HOUSENO','HOUSE')||'—',
+      Management:col(r,'MANAGEMENT','MGMT')||'CG',
+      Feed:p.Feed||'—',
+      '7D_Mort_pct':+d7.toFixed(3),Late_Mort_pct:+dl.toFixed(3),
+      LateShare_pct:+(lsS??0).toFixed(3),Total_Mort_pct:+dT.toFixed(3),
+      Livability_pct:+liv.toFixed(3),DOA:doaC??0,DOA_pct:+(doaP??0).toFixed(4),
+      Placed:placed,Mort7_Count:num(col(r,'7 DAY MORTALITY'))??0,
+      Late_Count:num(col(r,'LATE MORTALITY'))??0,
+      Total_Count:num(col(r,'TOTAL MORTALITY'))??0,
+      FCR:p.FCR,ADG:p.ADG??0,ALW:p.ALW,BPI:p.BPI,
+      Root_Cause:rc,
+      Action:{
+        'Early Issue':'Review brooding and chick quality',
+        'Late Issue':'Evaluate feed, disease, environment',
+        'Whole Cycle Issue':'Full farm audit required',
+        'Normal':'Maintain current practices'
+      }[rc],
+      Harvest_Age:num(col(r,'HARVESTAGE','HARVEST AGE')),
+      Ave_Age:num(col(r,'AVEAGE','AVE AGE')),
+      Grow:p.Grow??1,Breeder_Group:bGrp,Breeder_Age:bAge,Breeder_Class:bCls,
+      Day0_BW:p.Day0_BW,Day7_BW:p.Day7_BW,Day21_BW:p.Day21_BW,
+      Egg_Age:p.Egg_Age,Growth_Rate:p.GR
+    });
+  });
+  return DATA;
+}
+
+// ── Init dashboard from uploaded data ──
+function initDashboard(DATA,fname){
+  GDATA=DATA;FD=[...DATA];
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  const farms=[...new Set(DATA.map(d=>d.Farm))].sort();
+  const feeds=[...new Set(DATA.map(d=>d.Feed).filter(f=>f&&f!=='—'))].sort();
+  const grows=[...new Set(DATA.map(d=>d.Grow))].sort((a,b)=>a-b);
+  ['gf-farm','gf-feed','gf-grow'].forEach(id=>{
+    const el=document.getElementById(id);
+    while(el.options.length>1)el.remove(1);
+  });
+  farms.forEach(f=>document.getElementById('gf-farm').add(new Option(f,f)));
+  feeds.forEach(f=>document.getElementById('gf-feed').add(new Option(f,f)));
+  grows.forEach(g=>document.getElementById('gf-grow').add(new Option('Grow '+g,g)));
+  document.getElementById('gf-count').textContent=DATA.length+' / '+DATA.length+' houses';
+  document.title='Broiler RCA — '+fname;
+  ['gf-farm','gf-feed','gf-mgmt','gf-grow','gf-rc','gf-breed'].forEach(id=>
+    document.getElementById(id).addEventListener('change',applyFilters));
+  // Reset to first tab
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.ntab[data-tab="overview"]').classList.add('active');
+  document.getElementById('tp-overview').classList.add('active');
+  activeTab='overview';
+  buildOverview();
+  renderDetailTable();
+}
+
+
+let GDATA=[],FD=[];
+
+function applyFilters(){
+  const farm=document.getElementById('gf-farm').value;
+  const feed=document.getElementById('gf-feed').value;
+  const mgmt=document.getElementById('gf-mgmt').value;
+  const grow=document.getElementById('gf-grow').value;
+  const rc=document.getElementById('gf-rc').value;
+  const breed=document.getElementById('gf-breed').value;
+  FD=GDATA.filter(d=>(!farm||d.Farm===farm)&&(!feed||d.Feed===feed)&&(!mgmt||d.Management===mgmt)&&(!grow||d.Grow==grow)&&(!rc||d.Root_Cause===rc)&&(!breed||d.Breeder_Class===breed));
+  document.getElementById('gf-count').textContent=FD.length+' / '+GDATA.length+' houses';
+  refreshAll();
+}
+function resetFilters(){['gf-farm','gf-feed','gf-mgmt','gf-grow','gf-rc','gf-breed'].forEach(id=>document.getElementById(id).value='');applyFilters();}
+
+// ════════════════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════════════════
+let activeTab='overview';
+document.querySelectorAll('.ntab').forEach(t=>{
+  t.addEventListener('click',function(){
+    document.querySelectorAll('.ntab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tp').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');activeTab=this.dataset.tab;
+    document.getElementById('tp-'+activeTab).classList.add('active');
+    // Force layout reflow before drawing
+    void document.getElementById('tp-'+activeTab).offsetHeight;
+    setTimeout(redrawTab,120);
+    // Second pass in case first was too early
+    setTimeout(redrawTab,400);
+  });
+});
+function refreshAll(){redrawTab();}
+function redrawTab(){
+  const m={overview:buildOverview,mortality:buildMortality,livability:buildLivability,
+    feed:buildFeed,rca:buildRCA,scatter:buildScatter,cycle:buildCycle,
+    breeder:buildBreeder,hatchery:buildHatchery,mgmt:buildMgmt,table:renderDetailTable};
+  if(m[activeTab])m[activeTab]();
+}
+
+// ════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════
+const FC={PILMICO:'#4b80ff',ATLAS:'#a87ff5','NEW HOPE':'#00cca8'};
+const MC={CG:'#ffb940',INTERNAL:'#00cca8'};
+const BCC={Young:'#00cca8',Prime:'#4b80ff',Old:'#ff8c3a',Unknown:'#5e7299'};
+const RCC={Normal:'#00cca8','Late Issue':'#a87ff5','Early Issue':'#ff8c3a','Whole Cycle Issue':'#ff3f5e'};
+const feedClr=fd=>FC[fd]||'#4b80ff';
+const f=(v,d=2)=>v==null||isNaN(v)?'—':Number(v).toFixed(d);
+const av=(a,k)=>{const v=a.map(d=>d[k]).filter(x=>x!=null&&!isNaN(x));return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;};
+const avP=(a,k)=>{const v=a.map(d=>d[k]).filter(x=>x!=null&&!isNaN(x)&&x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;};
+const cm=(v,g,w)=>v<=g?'#00cca8':v<=w?'#ffb940':'#ff3f5e';
+const cp=(v,g,w,hi)=>hi?(v>=g?'#00cca8':v>=w?'#ffb940':'#ff3f5e'):(v<=g?'#00cca8':v<=w?'#ffb940':'#ff3f5e');
+const rcCls={Normal:'pn','Late Issue':'pl','Early Issue':'pe','Whole Cycle Issue':'pw'};
+const rcPill=rc=>`<span class="pill ${rcCls[rc]||'pn'}">${rc}</span>`;
+const feedPill=fd=>`<span class="pill" style="background:${feedClr(fd)}22;color:${feedClr(fd)}">${fd}</span>`;
+const mgmtPill=m=>`<span class="pill ${m==='INTERNAL'?'pint':'pcg'}">${m}</span>`;
+const breedBadge=bc=>`<span class="bc-${(bc||'unk').toLowerCase()}">${bc||'—'}</span>`;
+function getFU(){return{farms:[...new Set(FD.map(d=>d.Farm))].sort(),feeds:[...new Set(FD.map(d=>d.Feed).filter(f=>f&&f!=='—'))].sort(),grows:[...new Set(FD.map(d=>d.Grow))].sort((a,b)=>a-b)};}
+
+// ════════════════════════════════════════════════
+// CANVAS UTILS
+// ════════════════════════════════════════════════
+function sc(id,H,cols){
+  // cols: 1=full, 2=half, 3=third (for grid layouts)
+  const c=document.getElementById(id);if(!c)return null;
+  const mainEl=document.getElementById('main');
+  let mainW=(mainEl?mainEl.offsetWidth:0)||window.innerWidth-56;
+  if(mainW<200)mainW=window.innerWidth-56;
+  const gap=13,pad=40;
+  let W=mainW-pad;
+  if(cols===2)W=Math.floor((mainW-pad-gap)/2);
+  if(cols===3)W=Math.floor((mainW-pad-gap*2)/3);
+  if(W<150)W=mainW-pad;
+  c.width=W;c.height=H;c.style.width=W+'px';
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#0f1520';ctx.fillRect(0,0,W,H);
+  return{c,ctx,W,H};
+}
+
+function grid(ctx,W,H,PAD,n){ctx.strokeStyle='rgba(30,45,72,.7)';ctx.lineWidth=1;for(let i=0;i<=n;i++){const y=PAD.t+i*(H-PAD.t-PAD.b)/n;ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();}}
+function yLbl(ctx,PAD,H,maxV,n,pct,dp){dp=dp??1;ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';for(let i=0;i<=n;i++){const v=maxV*(1-i/n);const y=PAD.t+i*(H-PAD.t-PAD.b)/n;ctx.fillText(f(v,dp)+(pct?'%':''),PAD.l-4,y+3);}}
+function axis(ctx,PAD,W,H){ctx.strokeStyle='rgba(75,128,255,.3)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();}
+function xLbl(ctx,labels,PAD,W,H,gw){ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='center';labels.forEach((l,i)=>ctx.fillText(l,PAD.l+i*gw+gw/2,H-PAD.b+14));}
+
+function groupBar(id,groups,series,H){
+  const s=sc(id,H);if(!s)return;const{ctx,W}=s;
+  const PAD={l:42,r:14,t:20,b:36};const n=groups.length;if(!n)return;
+  const gw=(W-PAD.l-PAD.r)/n;const bw=Math.max(4,gw/(series.length+1));
+  const allV=series.flatMap(s=>s.values).filter(v=>v>0);
+  const maxV=allV.length?Math.max(...allV)*1.15:1;
+  grid(ctx,W,H,PAD,4);yLbl(ctx,PAD,H,maxV,4,true);axis(ctx,PAD,W,H);
+  series.forEach((sr,si)=>sr.values.forEach((v,gi)=>{
+    if(!v&&v!==0)return;
+    const x=PAD.l+gi*gw+si*bw+bw*.3;const bh=(v/maxV)*(H-PAD.t-PAD.b);const y=H-PAD.b-bh;
+    ctx.fillStyle=sr.color+'bb';ctx.fillRect(x,y,bw*.85,bh);
+    ctx.strokeStyle=sr.color;ctx.lineWidth=1;ctx.strokeRect(x,y,bw*.85,bh);
+  }));
+  xLbl(ctx,groups,PAD,W,H,gw);
+}
+
+function horizBar(id,data,colorFn,H){
+  const s=sc(id,H);if(!s)return;const{ctx,W}=s;
+  const PAD={l:84,r:54,t:8,b:8};const max=Math.max(...data.map(d=>d.val),0.01);
+  const rH=(H-PAD.t-PAD.b)/data.length;
+  data.forEach((d,i)=>{
+    const y=PAD.t+i*rH;const c=colorFn(d.val);const bw=(d.val/max)*(W-PAD.l-PAD.r);
+    ctx.fillStyle=c+'22';ctx.fillRect(PAD.l,y+2,W-PAD.l-PAD.r,rH-4);
+    ctx.fillStyle=c+'bb';ctx.fillRect(PAD.l,y+2,bw,rH-4);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';ctx.fillText(d.label,PAD.l-5,y+rH/2+3);
+    ctx.fillStyle=c;ctx.font='bold 10px Segoe UI';ctx.textAlign='left';ctx.fillText(f(d.val,2)+(d.unit||'%'),PAD.l+bw+4,y+rH/2+3);
+  });
+}
+
+function meter(containerId,rows){
+  document.getElementById(containerId).innerHTML=rows.map(m=>{
+    const c=m.hi?cp(m.v,m.g,m.w,true):cm(m.v,m.g,m.w);
+    const p=Math.min(100,Math.abs(m.v||0)/m.max*100);
+    const lbl=m.v==null?'—':(m.pct?f(m.v,1)+'%':f(m.v,m.dp??2)+(m.unit||''));
+    return`<div class="mtr-row"><div class="mtr-n">${m.n}</div><div class="mtr-bar"><div class="mtr-fill" style="width:${p}%;background:${c}"></div></div><div class="mtr-v" style="color:${c}">${lbl}</div></div>`;
+  }).join('');
+}
+
+function scatterBase(id,H,maxX,maxY){
+  const s=sc(id,H,1);if(!s)return null;const{ctx,W}=s;
+  const PAD={l:52,r:22,t:36,b:50};
+  const px=x=>PAD.l+(x/maxX)*(W-PAD.l-PAD.r);
+  const py=y=>H-PAD.b-(y/maxY)*(H-PAD.t-PAD.b);
+  for(let x=0;x<=maxX;x+=maxX/5){ctx.strokeStyle='rgba(30,45,72,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px(x),PAD.t);ctx.lineTo(px(x),H-PAD.b);ctx.stroke();}
+  for(let y=0;y<=maxY;y+=maxY/5){ctx.beginPath();ctx.moveTo(PAD.l,py(y));ctx.lineTo(W-PAD.r,py(y));ctx.stroke();}
+  axis(ctx,PAD,W,H);
+  return{s,ctx,W,H,PAD,px,py};
+}
+
+// ════════════════════════════════════════════════
+// OVERVIEW
+// ════════════════════════════════════════════════
+function buildOverview(){
+  const D=FD;
+  const avgT=av(D,'Total_Mort_pct'),avg7=av(D,'7D_Mort_pct'),avgL=av(D,'Late_Mort_pct');
+  const avgB=avP(D,'BPI'),avgF=avP(D,'FCR'),avgLiv=av(D,'Livability_pct');
+  const avgDOA=av(D,'DOA_pct'),iss=D.filter(d=>d.Root_Cause!=='Normal').length;
+  const kpis=[
+    {l:'Total Mort %',v:f(avgT)+'%',c:cm(avgT,4.5,6),s:'≤4.5% good'},
+    {l:'7D Mort %',v:f(avg7)+'%',c:cm(avg7,1,2),s:'≤1% good'},
+    {l:'Late Mort %',v:f(avgL)+'%',c:cm(avgL,3,5),s:'≤3% good'},
+    {l:'Avg Livability %',v:f(avgLiv)+'%',c:cp(avgLiv,95.5,94,true),s:'≥95.5% good'},
+    {l:'Avg DOA %',v:f(avgDOA)+'%',c:cm(avgDOA,0.5,1),s:'≤0.5% good'},
+    {l:'Avg BPI',v:avgB?Math.round(avgB):'—',c:cp(avgB,380,320,true),s:'≥380 good'},
+    {l:'Avg FCR',v:avgF?f(avgF):'—',c:cp(avgF,1.5,1.6),s:'≤1.50 good'},
+    {l:'Issue Houses',v:iss,c:iss===0?'#00cca8':iss<=3?'#ffb940':'#ff3f5e',s:'of '+D.length},
+  ];
+  document.getElementById('ov-kpis').innerHTML=kpis.map(k=>`<div class="kc"><div class="kc-lbl">${k.l}</div><div class="kc-val" style="color:${k.c}">${k.v}</div><div class="kc-sub">${k.s}</div></div>`).join('');
+  meter('ov-mmtrs',[{n:'Avg 7D Mort %',v:avg7,max:3,g:1,w:2,pct:true},{n:'Avg Late Mort %',v:avgL,max:12,g:3,w:5,pct:true},{n:'Avg Total Mort %',v:avgT,max:14,g:4.5,w:6,pct:true},{n:'Avg Late Share %',v:av(D,'LateShare_pct'),max:100,g:70,w:80,pct:true}]);
+  meter('ov-pmtrs',[{n:'Avg FCR',v:avgF,max:2.2,g:1.5,w:1.6},{n:'Avg ADG (g)',v:avP(D.filter(d=>d.ADG>0),'ADG'),max:80,g:60,w:55,hi:true,unit:'g'},{n:'Avg ALW (kg)',v:avP(D,'ALW'),max:3,g:2.2,w:2,hi:true,unit:'kg'},{n:'Avg BPI',v:avgB,max:600,g:380,w:320,hi:true}]);
+  const cnt={Normal:0,'Late Issue':0,'Early Issue':0,'Whole Cycle Issue':0};
+  D.forEach(d=>cnt[d.Root_Cause]=(cnt[d.Root_Cause]||0)+1);
+  document.getElementById('ov-rc').innerHTML=[{k:'Normal',c:'norm',i:'✅',a:'Maintain current practices'},{k:'Late Issue',c:'late',i:'⚠️',a:'Evaluate feed, disease & environment'},{k:'Early Issue',c:'early',i:'🔶',a:'Review brooding & chick quality'},{k:'Whole Cycle Issue',c:'whole',i:'🚨',a:'Full farm audit required'}].map(r=>`<div class="rcc ${r.c}"><div style="font-size:18px;">${r.i}</div><div class="rcc-n">${cnt[r.k]||0}</div><div class="rcc-lbl">${r.k}</div><div class="rcc-act">→ ${r.a}</div></div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// MORTALITY (COMPREHENSIVE)
+// ════════════════════════════════════════════════
+function buildMortality(){
+  const D=FD,{farms}=getFU();
+  const avgT=av(D,'Total_Mort_pct'),avg7=av(D,'7D_Mort_pct'),avgL=av(D,'Late_Mort_pct');
+  const avgDOA=av(D,'DOA_pct'),avgShare=av(D,'LateShare_pct');
+
+  document.getElementById('mort-kpis').innerHTML=[
+    {l:'Avg 7D Mort %',v:f(avg7)+'%',c:cm(avg7,1,2),s:'≤1% good'},
+    {l:'Avg Late Mort %',v:f(avgL)+'%',c:cm(avgL,3,5),s:'≤3% good'},
+    {l:'Avg Total Mort %',v:f(avgT)+'%',c:cm(avgT,4.5,6),s:'≤4.5% good'},
+    {l:'Avg DOA %',v:f(avgDOA)+'%',c:cm(avgDOA,0.5,1),s:'≤0.5% good'},
+    {l:'Avg Late Share %',v:f(avgShare,1)+'%',c:cm(avgShare,70,80),s:'≤70% good'},
+    {l:'Issue Houses',v:D.filter(d=>d.Root_Cause!=='Normal').length,c:D.filter(d=>d.Root_Cause!=='Normal').length>0?'#ffb940':'#00cca8',s:'of '+D.length},
+    {l:'Avg 7D Count',v:Math.round(av(D,'Mort7_Count')),c:'',s:'deaths per house'},
+    {l:'Avg Total Count',v:Math.round(av(D,'Total_Count')),c:'',s:'deaths per house'},
+  ].map(k=>`<div class="kc"><div class="kc-lbl">${k.l}</div><div class="kc-val" style="color:${k.c||'var(--tx)'}">${k.v}</div><div class="kc-sub">${k.s}</div></div>`).join('');
+
+  // Stacked bar
+  const sorted=[...D].sort((a,b)=>b.Total_Mort_pct-a.Total_Mort_pct);
+  const s=sc('ch-mortstack',300);if(s){
+    const{ctx,W,H}=s,PAD={l:44,r:12,t:32,b:46};
+    const maxY=Math.max(...sorted.map(d=>d.Total_Mort_pct))*1.18||1;
+    [{v:4.5,c:'rgba(0,204,168,.4)',l:'Good 4.5%'},{v:6,c:'rgba(255,63,94,.4)',l:'Poor 6%'}].forEach(th=>{
+      const y=PAD.t+(1-th.v/maxY)*(H-PAD.t-PAD.b);
+      ctx.strokeStyle=th.c;ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+      ctx.fillStyle=th.c.replace('.4','.8');ctx.font='9px Segoe UI';ctx.textAlign='left';ctx.fillText(th.l,PAD.l+3,y-3);
+    });ctx.setLineDash([]);
+    grid(ctx,W,H,PAD,5);yLbl(ctx,PAD,H,maxY,5,true);axis(ctx,PAD,W,H);
+    ctx.fillStyle='#ff8c3a';ctx.fillRect(PAD.l,12,14,10);ctx.fillStyle='#a87ff5';ctx.fillRect(PAD.l+88,12,14,10);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='left';ctx.fillText('7D Mort %',PAD.l+18,21);ctx.fillText('Late Mort %',PAD.l+106,21);
+    const bw=Math.max(2,(W-PAD.l-PAD.r)/sorted.length-1);
+    sorted.forEach((d,i)=>{
+      const x=PAD.l+i*(bw+1);const h7=(d['7D_Mort_pct']/maxY)*(H-PAD.t-PAD.b);const hL=(d.Late_Mort_pct/maxY)*(H-PAD.t-PAD.b);
+      ctx.fillStyle='#ff8c3acc';ctx.fillRect(x,H-PAD.b-h7,bw,h7);
+      ctx.fillStyle='#a87ff5cc';ctx.fillRect(x,H-PAD.b-h7-hL,bw,hL);
+      if(d.Root_Cause!=='Normal'){ctx.fillStyle='#ff3f5e';ctx.font='bold 8px Segoe UI';ctx.textAlign='center';ctx.fillText('!',x+bw/2,H-PAD.b-h7-hL-3);}
+    });
+    ctx.fillStyle='#5e7299';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(sorted.length+' houses sorted by Total Mort % ↓',W/2,H-8);
+  }
+  // Mortality analysis
+  {const D2=[...FD];
+  const avgT2=D2.reduce((s,d)=>s+d.Total_Mort_pct,0)/D2.length;
+  const avgShare2=D2.reduce((s,d)=>s+d.LateShare_pct,0)/D2.length;
+  const iss2=D2.filter(d=>d.Root_Cause!=='Normal');
+  const worst2=[...D2].sort((a,b)=>b.Total_Mort_pct-a.Total_Mort_pct)[0];
+  let mAn=`Avg total mortality: <b style="color:${avgT2<=4.5?'#00cca8':avgT2<=6?'#ffb940':'#ff3f5e'}">${avgT2.toFixed(2)}%</b> across <b>${D2.length}</b> houses. `;
+  mAn+=`Late share avg: <b>${avgShare2.toFixed(1)}%</b> — ${avgShare2>80?'most deaths occur late in the cycle, pointing to mid-to-late management, feed, or disease challenges':'mortality is distributed across the cycle'}. `;
+  if(iss2.length) mAn+=`<b style="color:#ff8c3a">${iss2.length} flagged house(s)</b>. Worst: <b>${worst2.Farm} ${worst2.House}</b> at <b>${worst2.Total_Mort_pct.toFixed(2)}%</b> (${worst2.Root_Cause}).`;
+  else mAn+=`<b style="color:#00cca8">No flagged houses</b> — all within mortality thresholds.`;
+  const mortEl=document.getElementById('mort-analysis');if(mortEl)mortEl.innerHTML=mAn;}
+
+  // DOA bar
+  const doaSorted=[...D].sort((a,b)=>b.DOA_pct-a.DOA_pct);
+  const s2=sc('ch-doa',220);if(s2){
+    const{ctx,W,H}=s2,PAD={l:44,r:12,t:24,b:40};
+    const maxY=Math.max(...doaSorted.map(d=>d.DOA_pct))*1.2||1;
+    [0.5,1].forEach((th,i)=>{
+      const y=PAD.t+(1-th/maxY)*(H-PAD.t-PAD.b);
+      ctx.strokeStyle=i===0?'rgba(0,204,168,.4)':'rgba(255,63,94,.4)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+      ctx.fillStyle=i===0?'rgba(0,204,168,.7)':'rgba(255,63,94,.7)';ctx.font='9px Segoe UI';ctx.textAlign='left';ctx.fillText(th+'%',PAD.l+2,y-3);
+    });ctx.setLineDash([]);
+    grid(ctx,W,H,PAD,4);yLbl(ctx,PAD,H,maxY,4,true);axis(ctx,PAD,W,H);
+    const bw=Math.max(2,(W-PAD.l-PAD.r)/doaSorted.length-1);
+    doaSorted.forEach((d,i)=>{
+      const x=PAD.l+i*(bw+1);const bh=(d.DOA_pct/maxY)*(H-PAD.t-PAD.b);
+      const c=d.DOA_pct<=0.5?'#00cca8':d.DOA_pct<=1?'#ffb940':'#ff3f5e';
+      ctx.fillStyle=c+'bb';ctx.fillRect(x,H-PAD.b-bh,bw,bh);
+    });
+    ctx.fillStyle='#5e7299';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText('DOA% per house — sorted ↓',W/2,H-8);
+  }
+
+  // Mortality count bars
+  groupBar('ch-mort-counts',['DOA','7D Deaths','Late Deaths','Total Deaths'],[
+    {label:'Counts',color:'#4b80ff',values:[av(D,'DOA'),av(D,'Mort7_Count'),av(D,'Late_Count'),av(D,'Total_Count')]}
+  ],220);
+
+  // By breeder class
+  const bcs=['Young','Prime','Old'].filter(bc=>D.some(d=>d.Breeder_Class===bc));
+  groupBar('ch-7d-breed',bcs,[{label:'7D Mort %',color:'#ff8c3a',values:bcs.map(bc=>av(D.filter(d=>d.Breeder_Class===bc),'7D_Mort_pct'))}],200);
+  groupBar('ch-late-breed',bcs,[{label:'Late Mort %',color:'#a87ff5',values:bcs.map(bc=>av(D.filter(d=>d.Breeder_Class===bc),'Late_Mort_pct'))}],200);
+
+  // By farm
+  horizBar('ch-tot-farm',farms.map(fm=>({label:fm,val:av(D.filter(d=>d.Farm===fm),'Total_Mort_pct')})).sort((a,b)=>b.val-a.val),v=>cm(v,4.5,6),220);
+  horizBar('ch-late-farm',farms.map(fm=>({label:fm,val:av(D.filter(d=>d.Farm===fm),'Late_Mort_pct')})).sort((a,b)=>b.val-a.val),v=>cm(v,3,5),220);
+
+  // Late share strip
+  const s3=sc('ch-lateshare',200);if(s3){
+    const{ctx,W,H}=s3,PAD={l:10,r:10,t:28,b:28};
+    const shSorted=[...D].sort((a,b)=>b.LateShare_pct-a.LateShare_pct);
+    [70,80].forEach((th,i)=>{
+      const y=PAD.t+(1-th/100)*(H-PAD.t-PAD.b);
+      ctx.strokeStyle=i===0?'rgba(0,204,168,.4)':'rgba(255,63,94,.4)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle=i===0?'rgba(0,204,168,.7)':'rgba(255,63,94,.7)';ctx.font='9px Segoe UI';ctx.textAlign='left';ctx.fillText(th+'% threshold',PAD.l+4,y-3);
+    });
+    const bw=Math.max(2,(W-PAD.l-PAD.r)/shSorted.length-1);
+    shSorted.forEach((d,i)=>{
+      const x=PAD.l+i*(bw+1);const bh=(d.LateShare_pct/100)*(H-PAD.t-PAD.b);
+      const c=d.LateShare_pct<=70?'#00cca8':d.LateShare_pct<=80?'#ffb940':'#ff3f5e';
+      ctx.fillStyle=c+(d.Root_Cause!=='Normal'?'dd':'77');ctx.fillRect(x,H-PAD.b-bh,bw,bh);
+    });
+    ctx.fillStyle='#5e7299';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText('Late Mort Share % — '+shSorted.length+' houses (sorted ↓)',W/2,H-6);
+  }
+}
+
+// ════════════════════════════════════════════════
+// LIVABILITY
+// ════════════════════════════════════════════════
+function buildLivability(){
+  const D=[...FD].sort((a,b)=>a.Livability_pct-b.Livability_pct);
+  const{farms}=getFU();
+  const s=sc('ch-livability',300);if(s){
+    const{ctx,W,H}=s,PAD={l:44,r:12,t:28,b:46};
+    const minY=84,maxY=100;
+    [{v:94,c:'rgba(255,63,94,.4)'},{v:95.5,c:'rgba(255,185,64,.4)'}].forEach(th=>{
+      const y=PAD.t+(maxY-th.v)/(maxY-minY)*(H-PAD.t-PAD.b);
+      ctx.strokeStyle=th.c;ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+      ctx.fillStyle=th.c.replace('.4','.7');ctx.font='9px Segoe UI';ctx.textAlign='left';ctx.fillText(th.v+'%',PAD.l+2,y-3);
+    });ctx.setLineDash([]);
+    grid(ctx,W,H,PAD,5);axis(ctx,PAD,W,H);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';
+    for(let i=0;i<=5;i++){const v=minY+i*(maxY-minY)/5;const y=H-PAD.b-i*(H-PAD.t-PAD.b)/5;ctx.fillText(f(v,0)+'%',PAD.l-4,y+3);}
+    const bw=Math.max(2,(W-PAD.l-PAD.r)/D.length-1);
+    D.forEach((d,i)=>{
+      const x=PAD.l+i*(bw+1);const cl=Math.max(minY,Math.min(maxY,d.Livability_pct));
+      const bh=(cl-minY)/(maxY-minY)*(H-PAD.t-PAD.b);
+      const c=d.Livability_pct>=95.5?'#00cca8':d.Livability_pct>=94?'#ffb940':'#ff3f5e';
+      ctx.fillStyle=c+'bb';ctx.fillRect(x,H-PAD.b-bh,bw,bh);
+      if(d.Root_Cause!=='Normal'){ctx.fillStyle='#ff3f5e';ctx.font='bold 8px Segoe UI';ctx.textAlign='center';ctx.fillText('!',x+bw/2,H-PAD.b-bh-3);}
+    });
+    ctx.fillStyle='#5e7299';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(D.length+' houses sorted by Livability % ↑',W/2,H-8);
+  }
+  horizBar('ch-liv-farm',farms.map(fm=>({label:fm,val:av(FD.filter(d=>d.Farm===fm),'Livability_pct')})).sort((a,b)=>b.val-a.val),v=>cp(v,95.5,94,true),220);
+
+  const s2=sc('ch-liv-hist',220,2);if(s2){
+    const{ctx,W,H}=s2,PAD2={l:36,r:10,t:22,b:36};
+    const bkts=[{lo:84,hi:93,l:'<93'},{lo:93,hi:94,l:'93–94'},{lo:94,hi:95,l:'94–95'},{lo:95,hi:96,l:'95–96'},{lo:96,hi:100,l:'>96'}];
+    const cnts=bkts.map(b=>FD.filter(d=>d.Livability_pct>=b.lo&&d.Livability_pct<(b.hi===100?101:b.hi)).length);
+    const maxC=Math.max(...cnts)||1;const bw2=(W-PAD2.l-PAD2.r)/bkts.length-4;
+    grid(ctx,W,H,PAD2,4);axis(ctx,PAD2,W,H);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';
+    for(let i=0;i<=4;i++){const v=maxC*(1-i/4);const y=PAD2.t+i*(H-PAD2.t-PAD2.b)/4;ctx.fillText(Math.round(v),PAD2.l-3,y+3);}
+    bkts.forEach((b,i)=>{
+      const x=PAD2.l+i*(bw2+4);const bh=(cnts[i]/maxC)*(H-PAD2.t-PAD2.b);
+      const c=i<=1?'#ff3f5e':i===2?'#ffb940':'#00cca8';
+      ctx.fillStyle=c+'bb';ctx.fillRect(x,H-PAD2.b-bh,bw2,bh);
+      ctx.fillStyle='#5e7299';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(b.l,x+bw2/2,H-PAD2.b+13);
+      if(cnts[i]>0){ctx.fillStyle=c;ctx.font='bold 10px Segoe UI';ctx.fillText(cnts[i],x+bw2/2,H-PAD2.b-bh-4);}
+    });
+  }
+}
+
+// ════════════════════════════════════════════════
+// FEED
+// ════════════════════════════════════════════════
+function buildFeed(){
+  const{feeds,farms}=getFU();
+  const stats=feeds.map(fd=>{
+    const D=FD.filter(d=>d.Feed===fd);const adgD=D.filter(d=>d.ADG>0);
+    return{feed:fd,n:D.length,m7:av(D,'7D_Mort_pct'),mL:av(D,'Late_Mort_pct'),mT:av(D,'Total_Mort_pct'),
+      fcr:avP(D,'FCR'),adg:adgD.length?av(adgD,'ADG'):null,alw:avP(D,'ALW'),bpi:avP(D,'BPI'),
+      iss:D.filter(d=>d.Root_Cause!=='Normal').length};
+  }).sort((a,b)=>b.bpi-a.bpi);
+
+  document.getElementById('feed-kpis').innerHTML=stats.map((s,i)=>`
+  <div class="card" style="border-top:3px solid ${feedClr(s.feed)};margin-bottom:0;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+      <span style="background:${feedClr(s.feed)}22;border:1px solid ${feedClr(s.feed)};color:${feedClr(s.feed)};padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">#${i+1}</span>
+      <b style="font-size:13px;">${s.feed}</b><span style="color:var(--mu);font-size:11px;margin-left:auto;">${s.n} houses</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><div class="kc-lbl">BPI</div><div class="kc-val" style="font-size:19px;color:${cp(s.bpi,380,320,true)}">${s.bpi?Math.round(s.bpi):'—'}</div></div>
+      <div><div class="kc-lbl">FCR</div><div class="kc-val" style="font-size:19px;color:${cp(s.fcr,1.5,1.6)}">${f(s.fcr)}</div></div>
+      <div><div class="kc-lbl">Total Mort%</div><div class="kc-val" style="font-size:19px;color:${cm(s.mT,4.5,6)}">${f(s.mT)}%</div></div>
+      <div><div class="kc-lbl">Late Mort%</div><div class="kc-val" style="font-size:19px;color:${cm(s.mL,3,5)}">${f(s.mL)}%</div></div>
+    </div>
+    ${s.iss>0?`<div style="margin-top:8px;padding:4px 8px;background:rgba(255,63,94,.08);border-radius:5px;font-size:10px;color:#ff8099;">⚠ ${s.iss} flagged</div>`:`<div style="margin-top:8px;padding:4px 8px;background:rgba(0,204,168,.08);border-radius:5px;font-size:10px;color:#00cca8;">✅ All normal</div>`}
+  </div>`).join('');
+
+  if(stats.length>=2){
+    const best=stats[0],worst=stats[stats.length-1];
+    document.getElementById('feed-ins').innerHTML=`<div class="ins"><b>${best.feed}</b> ranks #1 — BPI <b>${Math.round(best.bpi)}</b>, total mort <b>${f(best.mT)}%</b>, late mort <b>${f(best.mL)}%</b>.</div>
+    <div class="ins warn"><b>${worst.feed}</b> ranks last — BPI <b>${Math.round(worst.bpi)}</b>, late mort <b>${f(worst.mL)}%</b>. ${worst.mL>5?'Late mort exceeds 5% threshold.':''}</div>`;
+  }
+
+  // Dual-axis chart
+  const s=sc('ch-feed-main',240);if(s){
+    const{ctx,W,H}=s,PAD={l:46,r:56,t:24,b:40};
+    const n=stats.length;if(!n)return;
+    const gw=(W-PAD.l-PAD.r)/n,bw=gw/3;
+    const mortVals=stats.flatMap(s=>[s.mT,s.mL]).filter(v=>v>0);
+    const maxMort=Math.max(...mortVals,1)*1.2;
+    const bpiVals=stats.map(s=>s.bpi).filter(v=>v>0);
+    const minBPI=Math.max(0,Math.min(...bpiVals)*0.93),maxBPI=Math.max(...bpiVals)*1.07;
+    grid(ctx,W,H,PAD,4);axis(ctx,PAD,W,H);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';
+    for(let i=0;i<=4;i++){const v=maxMort*(1-i/4);const y=PAD.t+i*(H-PAD.t-PAD.b)/4;ctx.fillText(f(v,1)+'%',PAD.l-4,y+3);}
+    ctx.textAlign='left';
+    for(let i=0;i<=4;i++){const v=maxBPI-(maxBPI-minBPI)*i/4;const y=PAD.t+i*(H-PAD.t-PAD.b)/4;ctx.fillText(Math.round(v),W-PAD.r+5,y+3);}
+    ctx.strokeStyle='rgba(255,185,64,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(W-PAD.r,PAD.t);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+    stats.forEach((s,i)=>{
+      const x=PAD.l+i*gw+gw*.1;
+      const htT=(s.mT/maxMort)*(H-PAD.t-PAD.b);const htL=(s.mL/maxMort)*(H-PAD.t-PAD.b);
+      ctx.fillStyle='#ff3f5ebb';ctx.fillRect(x,H-PAD.b-htT,bw,htT);ctx.strokeStyle='#ff3f5e';ctx.lineWidth=1;ctx.strokeRect(x,H-PAD.b-htT,bw,htT);
+      ctx.fillStyle='#a87ff5bb';ctx.fillRect(x+bw+2,H-PAD.b-htL,bw,htL);ctx.strokeStyle='#a87ff5';ctx.lineWidth=1;ctx.strokeRect(x+bw+2,H-PAD.b-htL,bw,htL);
+      ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText(s.feed,PAD.l+i*gw+gw/2,H-PAD.b+14);
+    });
+    if(stats.length>1){ctx.beginPath();ctx.strokeStyle='#ffb940';ctx.lineWidth=2.5;
+      stats.forEach((s,i)=>{const x=PAD.l+i*gw+gw/2;const y=PAD.t+(1-(s.bpi-minBPI)/(maxBPI-minBPI))*(H-PAD.t-PAD.b);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+    stats.forEach((s,i)=>{
+      const x=PAD.l+i*gw+gw/2;const y=PAD.t+(1-(s.bpi-minBPI)/(maxBPI-minBPI))*(H-PAD.t-PAD.b);
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='#ffb940';ctx.fill();
+      ctx.fillStyle='#ffb940';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText(Math.round(s.bpi),x,y-9);
+    });
+  }
+  document.getElementById('feed-leg').innerHTML=`<div class="legi"><div class="legdot" style="background:#ff3f5e"></div>Total Mort % (left)</div><div class="legi"><div class="legdot" style="background:#a87ff5"></div>Late Mort % (left)</div><div class="legi"><div class="legdot" style="background:#ffb940;height:3px;border-radius:2px;"></div>BPI (right — actual values)</div>`;
+
+  groupBar('ch-feed-fcr',stats.map(s=>s.feed),[{label:'FCR',color:'#ffb940',values:stats.map(s=>s.fcr)}],200);
+
+  // Strip
+  const s2=sc('ch-feed-strip',200,2);if(s2){
+    const{ctx,W,H}=s2;
+    const allBPI=FD.map(d=>d.BPI).filter(v=>v>0);if(!allBPI.length)return;
+    const mn=Math.min(...allBPI)-10,mx=Math.max(...allBPI)+10;
+    const xB=v=>50+(v-mn)/(mx-mn)*(W-70);
+    [320,380].forEach((th,i)=>{
+      const x=xB(th);ctx.strokeStyle=i===0?'rgba(255,185,64,.5)':'rgba(0,204,168,.5)';ctx.setLineDash([4,3]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,10);ctx.lineTo(x,H-16);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle=i===0?'#ffb940':'#00cca8';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(th,x,9);
+    });
+    stats.forEach((s,si)=>{
+      const y=28+si*44;
+      ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';ctx.fillText(s.feed,46,y+4);
+      FD.filter(d=>d.Feed===s.feed&&d.BPI>0).forEach(d=>{
+        ctx.beginPath();ctx.arc(xB(d.BPI),y+(Math.random()-.5)*10,3.5,0,Math.PI*2);
+        ctx.fillStyle=feedClr(s.feed)+'aa';ctx.fill();
+      });
+      const ax=xB(s.bpi);ctx.strokeStyle=feedClr(s.feed);ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(ax,y-13);ctx.lineTo(ax,y+13);ctx.stroke();
+      ctx.fillStyle=feedClr(s.feed);ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('avg',ax,y-15);
+    });
+  }
+
+  // Heatmap
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr><th style="background:var(--s2);color:var(--mu);padding:6px 10px;border:1px solid var(--b1);">Farm</th>${stats.map(s=>`<th style="background:var(--s2);color:${feedClr(s.feed)};padding:6px 10px;border:1px solid var(--b1);">${s.feed}</th>`).join('')}</tr></thead><tbody>`;
+  farms.forEach(fm=>{
+    html+=`<tr><td style="font-weight:600;color:var(--tx);padding:6px 10px;border:1px solid var(--b1);">${fm}</td>`;
+    stats.forEach(s=>{
+      const D=FD.filter(d=>d.Farm===fm&&d.Feed===s.feed);
+      if(!D.length) html+=`<td style="color:var(--mu);border:1px solid var(--b1);padding:6px 10px;text-align:center;">—</td>`;
+      else{const bpi=avP(D,'BPI');const bg=bpi>=380?'rgba(0,204,168,.2)':bpi>=320?'rgba(255,185,64,.15)':'rgba(255,63,94,.15)';const tc=bpi>=380?'#00cca8':bpi>=320?'#ffb940':'#ff3f5e';html+=`<td style="background:${bg};color:${tc};border:1px solid var(--b1);padding:6px 10px;text-align:center;font-weight:600;">${Math.round(bpi)}</td>`;}
+    });
+    html+='</tr>';
+  });
+  document.getElementById('feed-heatmap').innerHTML=html+'</tbody></table>';
+}
+
+// ════════════════════════════════════════════════
+// ROOT CAUSE
+// ════════════════════════════════════════════════
+function buildRCA(){
+  const D=FD;
+  const cnt={Normal:0,'Late Issue':0,'Early Issue':0,'Whole Cycle Issue':0};
+  D.forEach(d=>cnt[d.Root_Cause]=(cnt[d.Root_Cause]||0)+1);
+  document.getElementById('rca-rc').innerHTML=[{k:'Normal',c:'norm',i:'✅'},{k:'Late Issue',c:'late',i:'⚠️'},{k:'Early Issue',c:'early',i:'🔶'},{k:'Whole Cycle Issue',c:'whole',i:'🚨'}].map(r=>`<div class="rcc ${r.c}"><div style="font-size:16px;">${r.i}</div><div class="rcc-n">${cnt[r.k]||0}</div><div class="rcc-lbl">${r.k}</div></div>`).join('');
+  const pie=document.getElementById('ch-rc-pie');const SW=pie.width,SH=pie.height,pc=pie.getContext('2d');
+  pc.clearRect(0,0,SW,SH);pc.fillStyle='#0f1520';pc.fillRect(0,0,SW,SH);
+  const total=Object.values(cnt).reduce((a,b)=>a+b,0);let angle=-Math.PI/2;
+  const cx=SW/2,cy=SH/2,r=Math.min(SW,SH)/2-6;
+  Object.entries(cnt).forEach(([k,v])=>{if(!v)return;const sw=v/total*Math.PI*2;pc.beginPath();pc.moveTo(cx,cy);pc.arc(cx,cy,r,angle,angle+sw);pc.closePath();pc.fillStyle=RCC[k]+'cc';pc.fill();pc.strokeStyle=RCC[k];pc.lineWidth=2;pc.stroke();angle+=sw;});
+  pc.beginPath();pc.arc(cx,cy,r*.54,0,Math.PI*2);pc.fillStyle='#0f1520';pc.fill();
+  pc.fillStyle='#dde4f5';pc.font='bold 18px Segoe UI';pc.textAlign='center';pc.textBaseline='middle';pc.fillText(total,cx,cy);pc.textBaseline='alphabetic';
+  document.getElementById('rc-pie-leg').innerHTML=Object.entries(cnt).map(([k,v])=>`<div class="legi"><div class="legdot" style="background:${RCC[k]};border-radius:50%;"></div><b>${v}</b> ${k}</div>`).join('');
+  const iss=D.filter(d=>d.Root_Cause!=='Normal').sort((a,b)=>b.Total_Mort_pct-a.Total_Mort_pct);
+  document.getElementById('prob-body').innerHTML=iss.length?iss.map(d=>`<tr>
+    <td><b>${d.Farm}</b></td><td>${d.House}</td><td>${d.Batch}</td>
+    <td>${mgmtPill(d.Management)}</td><td>${feedPill(d.Feed)}</td><td>G${d.Grow}</td>
+    <td>${breedBadge(d.Breeder_Class)} ${f(d.Breeder_Age,1)}wk</td>
+    <td style="color:${cm(d['7D_Mort_pct'],1,2)}">${f(d['7D_Mort_pct'])}%</td>
+    <td style="color:${cm(d.Late_Mort_pct,3,5)}">${f(d.Late_Mort_pct)}%</td>
+    <td>${f(d.LateShare_pct)}%</td>
+    <td style="color:${cm(d.Total_Mort_pct,4.5,6)}">${f(d.Total_Mort_pct)}%</td>
+    <td style="color:${cp(d.BPI,380,320,true)}">${d.BPI?Math.round(d.BPI):'—'}</td>
+    <td>${rcPill(d.Root_Cause)}</td>
+    <td style="color:var(--mu);font-size:10px;white-space:normal;max-width:140px;">${d.Action}</td>
+  </tr>`).join(''):`<tr><td colspan="14" style="text-align:center;color:var(--mu);padding:20px;">✅ No flagged houses in current selection</td></tr>`;
+}
+
+// ════════════════════════════════════════════════
+// SCATTER
+// ════════════════════════════════════════════════
+function buildScatter(){
+  const D=FD;const{feeds}=getFU();
+  if(!D.length)return;
+  const maxX=Math.max(2.5,Math.ceil(Math.max(...D.map(d=>d['7D_Mort_pct']))*1.3+.2));
+  const maxY=Math.max(13,Math.ceil(Math.max(...D.map(d=>d.Late_Mort_pct))*1.12+.5));
+  const r=sc('ch-scatter',460,1);if(!r)return;
+  const{c,ctx,W,H}=r;
+  const PAD={l:52,r:22,t:36,b:50};
+  const px=x=>PAD.l+(x/maxX)*(W-PAD.l-PAD.r);
+  const py=y=>H-PAD.b-(y/maxY)*(H-PAD.t-PAD.b);
+
+  // Quadrant backgrounds
+  ctx.fillStyle='rgba(0,204,168,.025)';ctx.fillRect(PAD.l,py(5),px(2)-PAD.l,H-PAD.b-py(5));
+  ctx.fillStyle='rgba(168,127,245,.025)';ctx.fillRect(PAD.l,PAD.t,px(2)-PAD.l,py(5)-PAD.t);
+  ctx.fillStyle='rgba(255,63,94,.025)';ctx.fillRect(px(2),PAD.t,W-PAD.r-px(2),py(5)-PAD.t);
+  ctx.fillStyle='rgba(255,140,58,.025)';ctx.fillRect(px(2),py(5),W-PAD.r-px(2),H-PAD.b-py(5));
+
+  // Threshold lines
+  ctx.strokeStyle='rgba(255,63,94,.6)';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.moveTo(px(2),PAD.t);ctx.lineTo(px(2),H-PAD.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(PAD.l,py(5));ctx.lineTo(W-PAD.r,py(5));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Grid
+  ctx.strokeStyle='rgba(30,45,72,.7)';ctx.lineWidth=1;
+  for(let x=0;x<=maxX;x+=0.5){ctx.beginPath();ctx.moveTo(px(x),PAD.t);ctx.lineTo(px(x),H-PAD.b);ctx.stroke();}
+  for(let y=0;y<=maxY;y+=2){ctx.beginPath();ctx.moveTo(PAD.l,py(y));ctx.lineTo(W-PAD.r,py(y));ctx.stroke();}
+
+  // Quadrant labels
+  ctx.font='10px Segoe UI';
+  ctx.fillStyle='rgba(0,204,168,.4)';ctx.textAlign='left';ctx.fillText('✓ NORMAL',PAD.l+5,H-PAD.b-10);
+  ctx.fillStyle='rgba(168,127,245,.4)';ctx.fillText('⚠ LATE',PAD.l+5,PAD.t+14);
+  ctx.fillStyle='rgba(255,63,94,.4)';ctx.fillText('✕ WHOLE',px(2)+5,PAD.t+14);
+  ctx.fillStyle='rgba(255,140,58,.4)';ctx.fillText('◆ EARLY',px(2)+5,H-PAD.b-10);
+
+  // Axes
+  ctx.strokeStyle='rgba(75,128,255,.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='center';
+  for(let x=0;x<=maxX;x+=0.5)ctx.fillText(x.toFixed(1)+'%',px(x),H-PAD.b+14);
+  ctx.textAlign='right';
+  for(let y=0;y<=maxY;y+=2)ctx.fillText(y+'%',PAD.l-4,py(y)+3);
+  ctx.textAlign='center';ctx.fillText('7-Day Mortality %',W/2,H-8);
+  ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Late Mortality %',0,0);ctx.restore();
+
+  // Legend
+  document.getElementById('sc-leg').innerHTML=feeds.map(fd=>`<div class="legi"><div class="legdot" style="background:${feedClr(fd)};border-radius:50%;"></div>${fd}</div>`).join('')+
+    `<div class="legi" style="margin-left:8px;"><div class="legdot" style="border:2px solid #ff3f5e;background:transparent;border-radius:50%;"></div>Issue ring</div>`;
+
+  // Draw dots
+  c._pts=[];
+  D.forEach(d=>{
+    const x=px(Math.min(d['7D_Mort_pct'],maxX));
+    const y=py(Math.min(d.Late_Mort_pct,maxY));
+    const dotR=d.Root_Cause!=='Normal'?7:5;
+    ctx.beginPath();ctx.arc(x,y,dotR,0,Math.PI*2);
+    ctx.fillStyle=feedClr(d.Feed)+'cc';ctx.globalAlpha=.88;ctx.fill();ctx.globalAlpha=1;
+    ctx.strokeStyle=RCC[d.Root_Cause];ctx.lineWidth=d.Root_Cause!=='Normal'?2.5:1;ctx.stroke();
+    c._pts.push({x,y,d});
+  });
+
+  // Dynamic analysis
+  const late=D.filter(d=>d.Root_Cause==='Late Issue');
+  const early=D.filter(d=>d.Root_Cause==='Early Issue');
+  const whole=D.filter(d=>d.Root_Cause==='Whole Cycle Issue');
+  const normal=D.filter(d=>d.Root_Cause==='Normal');
+  const lateByFeed={};late.forEach(d=>{lateByFeed[d.Feed]=(lateByFeed[d.Feed]||0)+1;});
+  const topFeed=Object.entries(lateByFeed).sort((a,b)=>b[1]-a[1])[0];
+  let analysis=`<b>${normal.length}</b> of ${D.length} houses are Normal. `;
+  if(late.length)analysis+=`<b style="color:#a87ff5">${late.length} Late Issue</b> — mortality concentrated in back-half of cycle${topFeed?`, most from <b>${topFeed[0]}</b> feed`:''}. `;
+  if(early.length)analysis+=`<b style="color:#ff8c3a">${early.length} Early Issue</b> — high 7D mortality signals brooding or chick quality problems. `;
+  if(whole.length)analysis+=`<b style="color:#ff3f5e">${whole.length} Whole Cycle</b> — compound issue requiring full farm audit. `;
+  if(!late.length&&!early.length&&!whole.length)analysis+='All houses within acceptable mortality thresholds — no root cause flags.';
+  document.getElementById('sc-analysis').innerHTML=analysis;
+}
+
+const scC=document.getElementById('ch-scatter'),tt=document.getElementById('tt');
+scC.addEventListener('mousemove',function(e){
+  if(!this._pts)return;const r=this.getBoundingClientRect();
+  const cx=(e.clientX-r.left)*(this.width/r.width);const cy=(e.clientY-r.top)*(this.height/r.height);
+  let cl=null,md=20;this._pts.forEach(p=>{const dd=Math.hypot(p.x-cx,p.y-cy);if(dd<md){md=dd;cl=p;}});
+  if(cl){const d=cl.d;
+    tt.innerHTML=`<b>${d.Farm} ${d.House}</b> <span style="color:var(--mu)">#${d.Batch} G${d.Grow}</span><br>
+      <span style="color:${feedClr(d.Feed)}">● ${d.Feed}</span> · ${d.Management}<br>
+      ${breedBadge(d.Breeder_Class)} ${f(d.Breeder_Age,1)}wk<br>
+      7D: <b style="color:${cm(d['7D_Mort_pct'],1,2)}">${f(d['7D_Mort_pct'])}%</b> Late: <b style="color:${cm(d.Late_Mort_pct,3,5)}">${f(d.Late_Mort_pct)}%</b><br>
+      BPI: <b style="color:${cp(d.BPI,380,320,true)}">${d.BPI?Math.round(d.BPI):'—'}</b><br>
+      <span style="color:${RCC[d.Root_Cause]}">● ${d.Root_Cause}</span>`;
+    tt.style.display='block';tt.style.left=(e.clientX+14)+'px';tt.style.top=(e.clientY-50)+'px';
+  }else tt.style.display='none';
+});
+scC.addEventListener('mouseleave',()=>tt.style.display='none');
+
+// ════════════════════════════════════════════════
+// CYCLE
+// ════════════════════════════════════════════════
+function buildCycle(){
+  const{feeds,farms,grows}=getFU();if(!grows.length)return;
+  const s=sc('ch-cy-mort',260);if(s){
+    const{ctx,W,H}=s,PAD={l:46,r:20,t:26,b:40};
+    const gAvg=g=>av(FD.filter(d=>d.Grow===g),'Total_Mort_pct');
+    const vals=grows.map(gAvg);const maxV=Math.max(...vals)*1.2||1;
+    const xG=i=>grows.length===1?W/2:PAD.l+i/(grows.length-1)*(W-PAD.l-PAD.r);
+    grid(ctx,W,H,PAD,5);yLbl(ctx,PAD,H,maxV,5,true);axis(ctx,PAD,W,H);
+    const farmColors=farms.reduce((acc,fm,i)=>{acc[fm]=['#4b80ff','#00cca8','#ffb940','#a87ff5','#ff8c3a','#ff3f5e','#1fffd6','#ffd700'][i%8];return acc;},{});
+    farms.forEach(fm=>{
+      const pts=grows.map((g,i)=>{const v=av(FD.filter(d=>d.Farm===fm&&d.Grow===g),'Total_Mort_pct');return{x:xG(i),y:H-PAD.b-(v/maxV)*(H-PAD.t-PAD.b),v};}).filter(p=>p.v>0);
+      if(pts.length<1)return;
+      ctx.beginPath();ctx.strokeStyle=farmColors[fm]+'55';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+      pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();ctx.setLineDash([]);
+    });
+    if(grows.length>1){ctx.beginPath();ctx.strokeStyle='#4b80ff';ctx.lineWidth=2;grows.forEach((g,i)=>{const y=H-PAD.b-(gAvg(g)/maxV)*(H-PAD.t-PAD.b);i===0?ctx.moveTo(xG(i),y):ctx.lineTo(xG(i),y);});ctx.stroke();}
+    grows.forEach((g,i)=>{const v=gAvg(g);const x=xG(i);const y=H-PAD.b-(v/maxV)*(H-PAD.t-PAD.b);
+      ctx.beginPath();ctx.arc(x,y,5.5,0,Math.PI*2);ctx.fillStyle=cm(v,4.5,6);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.fillStyle='#dde4f5';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('G'+g,x,H-PAD.b+14);
+      ctx.fillStyle=cm(v,4.5,6);ctx.font='10px Segoe UI';ctx.fillText(f(v,1)+'%',x,y-9);
+    });
+    document.getElementById('cy-leg').innerHTML=`<div class="legi"><div class="legdot" style="background:#4b80ff"></div>Overall Avg</div>`+farms.filter(fm=>grows.some(g=>FD.some(d=>d.Farm===fm&&d.Grow===g))).map(fm=>`<div class="legi"><div class="legdot" style="background:${farmColors[fm]}55;border:1px solid ${farmColors[fm]}"></div>${fm}</div>`).join('');
+  }
+  const fs=feeds.map(fd=>({label:fd,color:feedClr(fd),values:grows.map(g=>avP(FD.filter(d=>d.Feed===fd&&d.Grow===g),'BPI'))})).filter(s=>s.values.some(v=>v>0));
+  document.getElementById('cy-bpi-leg').innerHTML=fs.map(s=>`<div class="legi"><div class="legdot" style="background:${s.color}"></div>${s.label}</div>`).join('');
+  groupBar('ch-cy-bpi',grows.map(g=>'G'+g),fs,220);
+  groupBar('ch-cy-liv',grows.map(g=>'G'+g),[{label:'Livability %',color:'#00cca8',values:grows.map(g=>av(FD.filter(d=>d.Grow===g),'Livability_pct'))}],180);
+  groupBar('ch-cy-fcr',grows.map(g=>'G'+g),[{label:'FCR',color:'#ffb940',values:grows.map(g=>avP(FD.filter(d=>d.Grow===g),'FCR'))}],180);
+}
+
+// ════════════════════════════════════════════════
+// BREEDER ANALYSIS
+// ════════════════════════════════════════════════
+function buildBreeder(){
+  const D=FD;
+  const bcs=['Young','Prime','Old'].filter(bc=>D.some(d=>d.Breeder_Class===bc));
+
+  // KPI cards
+  document.getElementById('breed-kpis').innerHTML=bcs.map(bc=>{
+    const d=D.filter(x=>x.Breeder_Class===bc);
+    const ageRange=d.map(x=>x.Breeder_Age).filter(x=>x!=null);
+    const minAge=ageRange.length?Math.min(...ageRange):0;const maxAge=ageRange.length?Math.max(...ageRange):0;
+    return`<div class="card" style="border-top:3px solid ${BCC[bc]};margin-bottom:0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+        <span class="bc-${bc.toLowerCase()}">${bc}</span>
+        <span style="color:var(--mu);font-size:11px;">${d.length} houses</span>
+        <span style="color:var(--mu);font-size:10px;margin-left:auto;">${f(minAge,1)}–${f(maxAge,1)} wk</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><div class="kc-lbl">Avg BPI</div><div class="kc-val" style="font-size:19px;color:${cp(avP(d,'BPI'),380,320,true)}">${Math.round(avP(d,'BPI'))||'—'}</div></div>
+        <div><div class="kc-lbl">Avg FCR</div><div class="kc-val" style="font-size:19px;color:${cp(avP(d,'FCR'),1.5,1.6)}">${f(avP(d,'FCR'))}</div></div>
+        <div><div class="kc-lbl">Total Mort%</div><div class="kc-val" style="font-size:19px;color:${cm(av(d,'Total_Mort_pct'),4.5,6)}">${f(av(d,'Total_Mort_pct'))}%</div></div>
+        <div><div class="kc-lbl">Livability%</div><div class="kc-val" style="font-size:19px;color:${cp(av(d,'Livability_pct'),95.5,94,true)}">${f(av(d,'Livability_pct'))}%</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Insights
+  if(bcs.length>=2){
+    const byBpi=bcs.map(bc=>({bc,bpi:avP(D.filter(x=>x.Breeder_Class===bc),'BPI'),mort:av(D.filter(x=>x.Breeder_Class===bc),'Total_Mort_pct')})).sort((a,b)=>b.bpi-a.bpi);
+    document.getElementById('breed-ins').innerHTML=`<div class="ins"><b>${byBpi[0].bc}</b> breeders produce the highest BPI at <b>${Math.round(byBpi[0].bpi)}</b> with avg total mort of <b>${f(byBpi[0].mort)}%</b>.</div>
+    ${byBpi.length>=2?`<div class="ins warn"><b>${byBpi[byBpi.length-1].bc}</b> breeders rank lowest — BPI <b>${Math.round(byBpi[byBpi.length-1].bpi)}</b>. ${byBpi[byBpi.length-1].mort>byBpi[0].mort?'Higher mortality trend observed.':''}</div>`:''}`;
+  }
+
+  // Mortality grouped bar
+  document.getElementById('breed-mort-leg').innerHTML=[{l:'7D Mort %',c:'#ff8c3a'},{l:'Late Mort %',c:'#a87ff5'},{l:'Total Mort %',c:'#ff3f5e'}].map(x=>`<div class="legi"><div class="legdot" style="background:${x.c}"></div>${x.l}</div>`).join('');
+  groupBar('ch-breed-mort',bcs,[
+    {label:'7D Mort %',color:'#ff8c3a',values:bcs.map(bc=>av(D.filter(d=>d.Breeder_Class===bc),'7D_Mort_pct'))},
+    {label:'Late Mort %',color:'#a87ff5',values:bcs.map(bc=>av(D.filter(d=>d.Breeder_Class===bc),'Late_Mort_pct'))},
+    {label:'Total Mort %',color:'#ff3f5e',values:bcs.map(bc=>av(D.filter(d=>d.Breeder_Class===bc),'Total_Mort_pct'))},
+  ],220);
+
+  // Performance grouped bar
+  document.getElementById('breed-perf-leg').innerHTML=[{l:'BPI÷10',c:'#4b80ff'},{l:'FCR×100',c:'#ffb940'},{l:'ADG(g)',c:'#00cca8'}].map(x=>`<div class="legi"><div class="legdot" style="background:${x.c}"></div>${x.l}</div>`).join('');
+  groupBar('ch-breed-perf',bcs,[
+    {label:'BPI÷10',color:'#4b80ff',values:bcs.map(bc=>avP(D.filter(d=>d.Breeder_Class===bc),'BPI')/10)},
+    {label:'FCR×100',color:'#ffb940',values:bcs.map(bc=>avP(D.filter(d=>d.Breeder_Class===bc),'FCR')*100)},
+    {label:'ADG(g)',color:'#00cca8',values:bcs.map(bc=>{const ad=D.filter(d=>d.Breeder_Class===bc&&d.ADG>0);return ad.length?av(ad,'ADG'):0;})},
+  ],220);
+
+  // Breeder analysis interpretations
+  {
+    const yg=FD.filter(d=>d.Breeder_Class==='Young');
+    const pm=FD.filter(d=>d.Breeder_Class==='Prime');
+    const f2=(v,d=2)=>v==null||isNaN(v)?'—':Number(v).toFixed(d);
+    const avF=(arr,k)=>{const v=arr.map(d=>d[k]).filter(x=>x!=null&&!isNaN(x)&&x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;};
+    const yMort=avF(yg,'Total_Mort_pct'),pMort=avF(pm,'Total_Mort_pct');
+    const yBPI=avF(yg,'BPI'),pBPI=avF(pm,'BPI');
+    const yFCR=avF(yg,'FCR'),pFCR=avF(pm,'FCR');
+    const yLate=avF(yg,'Late_Mort_pct'),pLate=avF(pm,'Late_Mort_pct');
+
+    const bmEl=document.getElementById('breed-mort-analysis');
+    if(bmEl){
+      let bm=`<b>Young (≤35wk)</b>: avg 7D mort <b>${f2(avF(yg,'7D_Mort_pct'))}%</b>, late mort <b style="color:${yLate>3?'#ff8c3a':'#00cca8'}">${f2(yLate)}%</b>, total mort <b>${f2(yMort)}%</b> · `;
+      bm+=`<b>Prime (36–50wk)</b>: avg 7D mort <b>${f2(avF(pm,'7D_Mort_pct'))}%</b>, late mort <b style="color:${pLate>3?'#ff8c3a':'#00cca8'}">${f2(pLate)}%</b>, total mort <b>${f2(pMort)}%</b>. `;
+      const mortDiff=Math.abs(yMort-pMort);
+      if(mortDiff<0.5) bm+=`Mortality difference between classes is minimal (${f2(mortDiff)}pp) — breeder age is not a strong mortality driver in this dataset.`;
+      else if(yMort>pMort) bm+=`<b style="color:#ff8c3a">Young breeders show ${f2(mortDiff)}pp higher total mortality</b>. Monitor early-flock placements more closely.`;
+      else bm+=`<b style="color:#ff8c3a">Prime breeders show ${f2(mortDiff)}pp higher total mortality</b>. Late mortality in prime-flock broilers may indicate feed or environmental challenges.`;
+      bmEl.innerHTML=bm;
+    }
+    const bpEl=document.getElementById('breed-perf-analysis');
+    if(bpEl){
+      let bp=`<b>Young (≤35wk)</b>: avg BPI <b style="color:${yBPI>=380?'#00cca8':yBPI>=320?'#ffb940':'#ff3f5e'}">${Math.round(yBPI)}</b>, FCR <b style="color:${yFCR<=1.5?'#00cca8':yFCR<=1.6?'#ffb940':'#ff3f5e'}">${f2(yFCR)}</b> · `;
+      bp+=`<b>Prime (36–50wk)</b>: avg BPI <b style="color:${pBPI>=380?'#00cca8':pBPI>=320?'#ffb940':'#ff3f5e'}">${Math.round(pBPI)}</b>, FCR <b style="color:${pFCR<=1.5?'#00cca8':pFCR<=1.6?'#ffb940':'#ff3f5e'}">${f2(pFCR)}</b>. `;
+      const bpiDiff=Math.abs(yBPI-pBPI);
+      if(bpiDiff<15) bp+=`BPI is comparable between classes — breeder age has minimal impact on production index in this dataset.`;
+      else if(yBPI>pBPI) bp+=`<b style="color:#00cca8">Young breeders outperform Prime by ${Math.round(bpiDiff)} BPI points.</b> Younger flocks may be producing more vigorous chicks.`;
+      else bp+=`<b style="color:#00cca8">Prime breeders outperform Young by ${Math.round(bpiDiff)} BPI points.</b> Peak-production flocks appear to benefit broiler performance in this dataset.`;
+      bpEl.innerHTML=bp;
+    }
+  }
+
+  // BPI strip by breeder class
+  const s=sc('ch-breed-bpi-strip',160);if(s){
+    const{ctx,W,H}=s;
+    const allBPI=D.map(d=>d.BPI).filter(v=>v>0);if(!allBPI.length)return;
+    const mn=Math.min(...allBPI)-10,mx=Math.max(...allBPI)+10;
+    const xB=v=>54+(v-mn)/(mx-mn)*(W-74);
+    [320,380].forEach((th,i)=>{
+      const x=xB(th);ctx.strokeStyle=i===0?'rgba(255,185,64,.5)':'rgba(0,204,168,.5)';ctx.setLineDash([4,3]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,8);ctx.lineTo(x,H-14);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle=i===0?'#ffb940':'#00cca8';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(th,x,8);
+    });
+    bcs.forEach((bc,bi)=>{
+      const y=26+bi*40;ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';ctx.fillText(bc,50,y+4);
+      D.filter(d=>d.Breeder_Class===bc&&d.BPI>0).forEach(d=>{
+        ctx.beginPath();ctx.arc(xB(d.BPI),y+(Math.random()-.5)*10,3.5,0,Math.PI*2);
+        ctx.fillStyle=BCC[bc]+'aa';ctx.fill();
+      });
+      const ax=xB(avP(D.filter(d=>d.Breeder_Class===bc),'BPI'));
+      ctx.strokeStyle=BCC[bc];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ax,y-13);ctx.lineTo(ax,y+13);ctx.stroke();
+      ctx.fillStyle=BCC[bc];ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('avg',ax,y-15);
+    });
+  }
+
+  // Breeder age vs total mort scatter — SELF-CONTAINED (no scatterBase)
+  {
+    const bD=D.filter(d=>d.Breeder_Age!=null&&d.Breeder_Age>0);
+    if(bD.length>0){
+      const maxX2=Math.max(50,Math.ceil(Math.max(...bD.map(d=>d.Breeder_Age))+2));
+      const minX2=Math.max(24,Math.floor(Math.min(...bD.map(d=>d.Breeder_Age))-1));
+      const maxY2=Math.max(14,Math.ceil(Math.max(...bD.map(d=>d.Total_Mort_pct))*1.2));
+      const r2=sc('ch-breed-scatter',280,1);
+      if(r2){
+        const{c:c2,ctx:x2,W:W2,H:H2}=r2;
+        const PAD2={l:52,r:20,t:24,b:46};
+        const px2=x=>PAD2.l+(x-minX2)/(maxX2-minX2)*(W2-PAD2.l-PAD2.r);
+        const py2=y=>H2-PAD2.b-(y/maxY2)*(H2-PAD2.t-PAD2.b);
+        // Grid
+        x2.strokeStyle='rgba(30,45,72,.7)';x2.lineWidth=1;
+        for(let xx=minX2;xx<=maxX2;xx+=5){x2.beginPath();x2.moveTo(px2(xx),PAD2.t);x2.lineTo(px2(xx),H2-PAD2.b);x2.stroke();}
+        for(let yy=0;yy<=maxY2;yy+=2){x2.beginPath();x2.moveTo(PAD2.l,py2(yy));x2.lineTo(W2-PAD2.r,py2(yy));x2.stroke();}
+        // Axes
+        x2.strokeStyle='rgba(75,128,255,.3)';x2.lineWidth=1.5;
+        x2.beginPath();x2.moveTo(PAD2.l,PAD2.t);x2.lineTo(PAD2.l,H2-PAD2.b);x2.lineTo(W2-PAD2.r,H2-PAD2.b);x2.stroke();
+        // Class zone backgrounds
+        const zoneY_t=PAD2.t, zoneH=H2-PAD2.t-PAD2.b;
+        x2.fillStyle='rgba(0,204,168,.06)';x2.fillRect(px2(minX2),zoneY_t,px2(35)-px2(minX2),zoneH);
+        x2.fillStyle='rgba(75,128,255,.06)';x2.fillRect(px2(35),zoneY_t,px2(Math.min(50,maxX2))-px2(35),zoneH);
+        // Zone labels
+        x2.font='9px Segoe UI';x2.textAlign='center';x2.fillStyle='rgba(0,204,168,.5)';
+        x2.fillText('YOUNG',px2(Math.min(35,maxX2)/2+minX2/2),PAD2.t+12);
+        x2.fillStyle='rgba(75,128,255,.5)';
+        const primeCenter=(Math.min(50,maxX2)+35)/2;
+        if(primeCenter>35)x2.fillText('PRIME',px2(primeCenter),PAD2.t+12);
+        // X labels
+        x2.fillStyle='#5e7299';x2.font='10px Segoe UI';x2.textAlign='center';
+        for(let xx=minX2;xx<=maxX2;xx+=5)x2.fillText(xx+'wk',px2(xx),H2-PAD2.b+14);
+        x2.textAlign='right';
+        for(let yy=0;yy<=maxY2;yy+=2)x2.fillText(yy+'%',PAD2.l-4,py2(yy)+3);
+        x2.textAlign='center';x2.fillText('Breeder Age (weeks)',W2/2,H2-8);
+        x2.save();x2.translate(13,H2/2);x2.rotate(-Math.PI/2);x2.fillText('Total Mort %',0,0);x2.restore();
+        // Dots
+        c2._pts=[];
+        bD.forEach(d=>{
+          const dotX=px2(d.Breeder_Age);const dotY=py2(Math.min(d.Total_Mort_pct,maxY2));
+          x2.beginPath();x2.arc(dotX,dotY,5,0,Math.PI*2);
+          x2.fillStyle=BCC[d.Breeder_Class]+'bb';x2.fill();
+          x2.strokeStyle=RCC[d.Root_Cause];x2.lineWidth=d.Root_Cause!=='Normal'?2:1;x2.stroke();
+          c2._pts.push({x:dotX,y:dotY,d});
+        });
+        // Trend line per class
+        ['Young','Prime'].forEach(bc=>{
+          const pts=bD.filter(d=>d.Breeder_Class===bc).sort((a,b)=>a.Breeder_Age-b.Breeder_Age);
+          if(pts.length<2)return;
+          const n=pts.length;const sumX=pts.reduce((s,p)=>s+p.Breeder_Age,0);const sumY=pts.reduce((s,p)=>s+p.Total_Mort_pct,0);
+          const sumXY=pts.reduce((s,p)=>s+p.Breeder_Age*p.Total_Mort_pct,0);const sumX2=pts.reduce((s,p)=>s+p.Breeder_Age*p.Breeder_Age,0);
+          const slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);const intercept=(sumY-slope*sumX)/n;
+          const x1=Math.min(...pts.map(p=>p.Breeder_Age));const x2e=Math.max(...pts.map(p=>p.Breeder_Age));
+          x2.beginPath();x2.strokeStyle=BCC[bc]+'88';x2.lineWidth=1.5;x2.setLineDash([4,3]);
+          x2.moveTo(px2(x1),py2(slope*x1+intercept));x2.lineTo(px2(x2e),py2(slope*x2e+intercept));
+          x2.stroke();x2.setLineDash([]);
+        });
+      }
+    }
+    // Dynamic breed-scatter analysis
+    const yg=D.filter(d=>d.Breeder_Class==='Young');const pm=D.filter(d=>d.Breeder_Class==='Prime');
+    const yMort=yg.length?yg.reduce((s,d)=>s+d.Total_Mort_pct,0)/yg.length:0;
+    const pMort=pm.length?pm.reduce((s,d)=>s+d.Total_Mort_pct,0)/pm.length:0;
+    const yBPI=yg.filter(d=>d.BPI>0).reduce((s,d)=>s+d.BPI,0)/(yg.filter(d=>d.BPI>0).length||1);
+    const pBPI=pm.filter(d=>d.BPI>0).reduce((s,d)=>s+d.BPI,0)/(pm.filter(d=>d.BPI>0).length||1);
+    const diff=Math.abs(yMort-pMort);
+    let bsAnalysis=`<b>Young</b> (≤35wk): avg total mort <b style="color:${yMort>pMort?'#ff8c3a':'#00cca8'}">${yMort.toFixed(2)}%</b>, avg BPI <b>${Math.round(yBPI)}</b> · `;
+    bsAnalysis+=`<b>Prime</b> (36–50wk): avg total mort <b style="color:${pMort>yMort?'#ff8c3a':'#00cca8'}">${pMort.toFixed(2)}%</b>, avg BPI <b>${Math.round(pBPI)}</b>. `;
+    if(diff<0.5) bsAnalysis+=`Mortality difference is minimal (${diff.toFixed(2)}pp) — breeder age has low direct impact in this dataset.`;
+    else if(yMort>pMort) bsAnalysis+=`Young breeders show ${diff.toFixed(2)}pp higher mortality. Consider closer monitoring of early-flock batches.`;
+    else bsAnalysis+=`Prime breeders show ${diff.toFixed(2)}pp higher mortality. Late-cycle losses from prime-flock broilers may warrant feed/management review.`;
+    const bsEl=document.getElementById('breed-scatter-analysis');
+    if(bsEl)bsEl.innerHTML=bsAnalysis;
+  }
+
+  // Table
+  document.getElementById('breed-tbody').innerHTML=[...D].sort((a,b)=>(a.Breeder_Age||0)-(b.Breeder_Age||0)).map(d=>`<tr>
+    <td><b>${d.Farm}</b></td><td>${d.House}</td><td>${d.Batch}</td>
+    <td>${d.Breeder_Group||'—'}</td><td>${d.Breeder_Age!=null?f(d.Breeder_Age,2)+' wk':'—'}</td>
+    <td>${breedBadge(d.Breeder_Class)}</td>
+    <td style="color:${cm(d['7D_Mort_pct'],1,2)}">${f(d['7D_Mort_pct'])}%</td>
+    <td style="color:${cm(d.Late_Mort_pct,3,5)}">${f(d.Late_Mort_pct)}%</td>
+    <td style="color:${cm(d.Total_Mort_pct,4.5,6)}">${f(d.Total_Mort_pct)}%</td>
+    <td style="color:${cp(d.Livability_pct,95.5,94,true)}">${f(d.Livability_pct)}%</td>
+    <td style="color:${cp(d.BPI,380,320,true)}">${d.BPI?Math.round(d.BPI):'—'}</td>
+    <td style="color:${cp(d.FCR,1.5,1.6)}">${d.FCR?f(d.FCR):'—'}</td>
+    <td>${rcPill(d.Root_Cause)}</td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// HATCHERY METRICS
+// ════════════════════════════════════════════════
+function buildHatchery(){
+  const D=FD;const{farms}=getFU();
+  const avgDOA=av(D,'DOA_pct'),avgD0=avP(D.filter(d=>d.Day0_BW>0),'Day0_BW');
+  const avgD7=avP(D.filter(d=>d.Day7_BW>0),'Day7_BW'),avgD21=avP(D.filter(d=>d.Day21_BW>0),'Day21_BW');
+  const avgEgg=avP(D.filter(d=>d.Egg_Age>0),'Egg_Age'),avgGR=avP(D.filter(d=>d.Growth_Rate>0),'Growth_Rate');
+
+  document.getElementById('hatch-kpis').innerHTML=[
+    {l:'Avg DOA %',v:f(avgDOA)+'%',c:cm(avgDOA,0.5,1),s:'≤0.5% = good'},
+    {l:'Avg Day 0 BW',v:avgD0?f(avgD0,1)+'g':'—',c:cp(avgD0,42,40,true),s:'≥42g good'},
+    {l:'Avg Day 7 BW',v:avgD7?f(avgD7,1)+'g':'—',c:cp(avgD7,200,180,true),s:'≥200g good'},
+    {l:'Avg Day 21 BW',v:avgD21?f(avgD21,1)+'g':'—',c:cp(avgD21,1000,900,true),s:'≥1000g good'},
+    {l:'Avg Egg Age',v:avgEgg?f(avgEgg,1)+'d':'—',c:avgEgg<=5?'#00cca8':avgEgg<=7?'#ffb940':'#ff3f5e',s:'≤5 days fresher'},
+    {l:'Avg Growth Rate',v:avgGR?f(avgGR,1)+' g/d':'—',c:cp(avgGR,58,50,true),s:'g/day'},
+    {l:'Total Placed',v:D.reduce((a,b)=>a+(b.Placed||0),0).toLocaleString(),c:'',s:'chicks across all houses'},
+    {l:'Total DOA',v:D.reduce((a,b)=>a+(b.DOA||0),0).toLocaleString(),c:'',s:'dead on arrival'},
+  ].map(k=>`<div class="kc"><div class="kc-lbl">${k.l}</div><div class="kc-val" style="color:${k.c||'var(--tx)'}">${k.v}</div><div class="kc-sub">${k.s}</div></div>`).join('');
+
+  // Insights
+  const hiDOA=D.filter(d=>d.DOA_pct>1).sort((a,b)=>b.DOA_pct-a.DOA_pct);
+  document.getElementById('hatch-ins').innerHTML=hiDOA.length?`<div class="ins bad"><b>${hiDOA.length} house(s)</b> have DOA% &gt;1%: ${hiDOA.slice(0,3).map(d=>`<b>${d.Farm} ${d.House}</b> (${f(d.DOA_pct)}%)`).join(', ')}${hiDOA.length>3?'…':''}. Investigate hatchery and transit conditions.</div>`:'<div class="ins">✅ No houses with DOA% &gt;1%. Hatchery quality looks good.</div>';
+
+  // DOA per house
+  const doaSorted=[...D].sort((a,b)=>b.DOA_pct-a.DOA_pct);
+  const s=sc('ch-hatch-doa',280);if(s){
+    const{ctx,W,H}=s,PAD={l:44,r:12,t:32,b:46};
+    const maxY=Math.max(...doaSorted.map(d=>d.DOA_pct))*1.2||1;
+    [0.5,1].forEach((th,i)=>{
+      const y=PAD.t+(1-th/maxY)*(H-PAD.t-PAD.b);
+      ctx.strokeStyle=i===0?'rgba(0,204,168,.4)':'rgba(255,63,94,.4)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+      ctx.fillStyle=i===0?'rgba(0,204,168,.7)':'rgba(255,63,94,.7)';ctx.font='9px Segoe UI';ctx.textAlign='left';ctx.fillText(th+'% ('+(i===0?'Good':'Poor')+')',PAD.l+3,y-3);
+    });ctx.setLineDash([]);
+    grid(ctx,W,H,PAD,5);yLbl(ctx,PAD,H,maxY,5,true);axis(ctx,PAD,W,H);
+    const bw=Math.max(2,(W-PAD.l-PAD.r)/doaSorted.length-1);
+    doaSorted.forEach((d,i)=>{
+      const x=PAD.l+i*(bw+1);const bh=(d.DOA_pct/maxY)*(H-PAD.t-PAD.b);
+      const c=d.DOA_pct<=0.5?'#00cca8':d.DOA_pct<=1?'#ffb940':'#ff3f5e';
+      ctx.fillStyle=c+'bb';ctx.fillRect(x,H-PAD.b-bh,bw,bh);
+    });
+    ctx.fillStyle='#5e7299';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(doaSorted.length+' houses sorted by DOA % ↓',W/2,H-8);
+    ctx.fillStyle='#ff8c3a';ctx.fillRect(PAD.l,12,14,10);ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='left';ctx.fillText('DOA % of Total Delivered',PAD.l+18,21);
+  }
+
+  // DOA by farm
+  horizBar('ch-doa-farm',farms.map(fm=>({label:fm,val:av(D.filter(d=>d.Farm===fm),'DOA_pct')})).sort((a,b)=>b.val-a.val),v=>cm(v,0.5,1),220);
+
+  // DOA by breeder class
+  const bcs=['Young','Prime','Old'].filter(bc=>D.some(d=>d.Breeder_Class===bc));
+  groupBar('ch-doa-breed',bcs,[{label:'DOA %',color:'#ff8c3a',values:bcs.map(bc=>av(D.filter(d=>d.Breeder_Class===bc),'DOA_pct'))}],220);
+
+  // Body weight progression by farm
+  const bwFarms=farms.filter(fm=>D.some(d=>d.Farm===fm&&d.Day7_BW>0));
+  document.getElementById('bw-leg').innerHTML=[{l:'Day 0 BW',c:'#00cca8'},{l:'Day 7 BW',c:'#4b80ff'},{l:'Day 21 BW÷10',c:'#ffb940'}].map(x=>`<div class="legi"><div class="legdot" style="background:${x.c}"></div>${x.l}</div>`).join('');
+  groupBar('ch-bw-farm',bwFarms,[
+    {label:'Day 0 BW (g)',color:'#00cca8',values:bwFarms.map(fm=>avP(D.filter(d=>d.Farm===fm&&d.Day0_BW>0),'Day0_BW'))},
+    {label:'Day 7 BW (g)',color:'#4b80ff',values:bwFarms.map(fm=>avP(D.filter(d=>d.Farm===fm&&d.Day7_BW>0),'Day7_BW'))},
+    {label:'Day 21 BW÷10',color:'#ffb940',values:bwFarms.map(fm=>avP(D.filter(d=>d.Farm===fm&&d.Day21_BW>0),'Day21_BW')/10)},
+  ],240);
+
+  // Egg age by farm
+  horizBar('ch-egg-farm',farms.map(fm=>({label:fm,val:avP(D.filter(d=>d.Farm===fm&&d.Egg_Age>0),'Egg_Age'),unit:'d'})).filter(x=>x.val>0).sort((a,b)=>b.val-a.val),v=>v<=5?'#00cca8':v<=7?'#ffb940':'#ff3f5e',220);
+
+  // Egg age vs DOA scatter
+  const s2=sc('ch-egg-doa',220,2);if(s2){
+    const{c,ctx,W,H}=s2,PAD={l:52,r:20,t:24,b:46};
+    const eggD=D.filter(d=>d.Egg_Age>0&&d.DOA_pct>=0);
+    const maxX=Math.max(14,Math.ceil(Math.max(...eggD.map(d=>d.Egg_Age))+1));
+    const maxY=Math.max(1.5,Math.ceil(Math.max(...eggD.map(d=>d.DOA_pct))*1.2*10)/10);
+    const px=x=>PAD.l+(x/maxX)*(W-PAD.l-PAD.r);const py=y=>H-PAD.b-(y/maxY)*(H-PAD.t-PAD.b);
+    grid(ctx,W,H,PAD,4);axis(ctx,PAD,W,H);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';
+    for(let i=0;i<=4;i++){const v=maxY*(1-i/4);const y=PAD.t+i*(H-PAD.t-PAD.b)/4;ctx.fillText(f(v,1)+'%',PAD.l-4,y+3);}
+    ctx.textAlign='center';for(let x=0;x<=maxX;x+=2)ctx.fillText(x+'d',px(x),H-PAD.b+14);
+    ctx.fillText('Egg Age (days)',W/2,H-8);
+    ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('DOA %',0,0);ctx.restore();
+    eggD.forEach(d=>{
+      ctx.beginPath();ctx.arc(px(d.Egg_Age),py(Math.min(d.DOA_pct,maxY)),4,0,Math.PI*2);
+      ctx.fillStyle=BCC[d.Breeder_Class]+'aa';ctx.fill();
+    });
+  }
+
+  // Day 0 BW vs 7D mort scatter
+  const s3=sc('ch-d0-mort',260);if(s3){
+    const{c,ctx,W,H}=s3,PAD={l:52,r:20,t:24,b:46};
+    const bwD=D.filter(d=>d.Day0_BW>0);
+    const maxX=Math.max(55,Math.ceil(Math.max(...bwD.map(d=>d.Day0_BW))+2));
+    const minX=Math.max(30,Math.floor(Math.min(...bwD.map(d=>d.Day0_BW))-1));
+    const maxY=Math.max(3,Math.ceil(Math.max(...bwD.map(d=>d['7D_Mort_pct']))*1.2));
+    const px=x=>PAD.l+(x-minX)/(maxX-minX)*(W-PAD.l-PAD.r);const py=y=>H-PAD.b-(y/maxY)*(H-PAD.t-PAD.b);
+    grid(ctx,W,H,PAD,4);axis(ctx,PAD,W,H);
+    ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';
+    for(let i=0;i<=4;i++){const v=maxY*(1-i/4);const y=PAD.t+i*(H-PAD.t-PAD.b)/4;ctx.fillText(f(v,1)+'%',PAD.l-4,y+3);}
+    ctx.textAlign='center';for(let x=minX;x<=maxX;x+=2)ctx.fillText(x+'g',px(x),H-PAD.b+14);
+    ctx.fillText('Day 0 Chick Weight (g)',W/2,H-8);
+    ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('7D Mort %',0,0);ctx.restore();
+    bwD.forEach(d=>{
+      ctx.beginPath();ctx.arc(px(d.Day0_BW),py(Math.min(d['7D_Mort_pct'],maxY)),4.5,0,Math.PI*2);
+      ctx.fillStyle=BCC[d.Breeder_Class]+'bb';ctx.fill();
+      ctx.strokeStyle=RCC[d.Root_Cause];ctx.lineWidth=d.Root_Cause!=='Normal'?2:1;ctx.stroke();
+    });
+  }
+
+  // Growth rate by farm
+  horizBar('ch-growth-farm',farms.map(fm=>({label:fm,val:avP(D.filter(d=>d.Farm===fm&&d.Growth_Rate>0),'Growth_Rate'),unit:' g/d'})).filter(x=>x.val>0).sort((a,b)=>b.val-a.val),v=>cp(v,58,50,true),200);
+
+  // Table
+  document.getElementById('hatch-tbody').innerHTML=[...D].sort((a,b)=>b.DOA_pct-a.DOA_pct).map(d=>`<tr>
+    <td><b>${d.Farm}</b></td><td>${d.House}</td><td>${d.Batch}</td>
+    <td>${d.Breeder_Group||'—'}</td><td>${d.Breeder_Age!=null?f(d.Breeder_Age,2)+' wk':'—'}</td>
+    <td>${breedBadge(d.Breeder_Class)}</td>
+    <td>${(d.Placed||0).toLocaleString()}</td><td>${(d.DOA||0)}</td>
+    <td style="color:${cm(d.DOA_pct,0.5,1)}">${f(d.DOA_pct)}%</td>
+    <td style="color:${d.Egg_Age<=5?'#00cca8':d.Egg_Age<=7?'#ffb940':'#ff3f5e'}">${d.Egg_Age?f(d.Egg_Age,1)+'d':'—'}</td>
+    <td>${d.Day0_BW?f(d.Day0_BW,1):'—'}</td><td>${d.Day7_BW?f(d.Day7_BW,1):'—'}</td><td>${d.Day21_BW&&d.Day21_BW>0?f(d.Day21_BW,1):'—'}</td>
+    <td>${d.Growth_Rate?f(d.Growth_Rate,2):'—'}</td>
+    <td style="color:${cm(d['7D_Mort_pct'],1,2)}">${f(d['7D_Mort_pct'])}%</td>
+    <td style="color:${cm(d.Total_Mort_pct,4.5,6)}">${f(d.Total_Mort_pct)}%</td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// MANAGEMENT
+// ════════════════════════════════════════════════
+function buildMgmt(){
+  const mgmts=['CG','INTERNAL'].filter(m=>FD.some(d=>d.Management===m));
+  const mS=mgmts.map(m=>{const D=FD.filter(d=>d.Management===m);const adgD=D.filter(d=>d.ADG>0);return{m,n:D.length,m7:av(D,'7D_Mort_pct'),mL:av(D,'Late_Mort_pct'),mT:av(D,'Total_Mort_pct'),bpi:avP(D,'BPI'),fcr:avP(D,'FCR'),adg:adgD.length?av(adgD,'ADG'):0,liv:av(D,'Livability_pct'),iss:D.filter(d=>d.Root_Cause!=='Normal').length};});
+  const lbl={CG:'Contract Grower',INTERNAL:'Internal'};
+  document.getElementById('mgmt-kpis').innerHTML=mS.map(ms=>`
+  <div class="card" style="border-top:3px solid ${MC[ms.m]};margin-bottom:0;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:11px;">
+      <span style="font-size:20px;">${ms.m==='CG'?'🤝':'🏭'}</span>
+      <div><b style="font-size:14px;">${lbl[ms.m]||ms.m}</b><div style="color:var(--mu);font-size:11px;">${ms.n} houses</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+      <div><div class="kc-lbl">BPI</div><div class="kc-val" style="font-size:19px;color:${cp(ms.bpi,380,320,true)}">${Math.round(ms.bpi)||'—'}</div></div>
+      <div><div class="kc-lbl">FCR</div><div class="kc-val" style="font-size:19px;color:${cp(ms.fcr,1.5,1.6)}">${f(ms.fcr)}</div></div>
+      <div><div class="kc-lbl">Total Mort%</div><div class="kc-val" style="font-size:19px;color:${cm(ms.mT,4.5,6)}">${f(ms.mT)}%</div></div>
+      <div><div class="kc-lbl">Livability%</div><div class="kc-val" style="font-size:19px;color:${cp(ms.liv,95.5,94,true)}">${f(ms.liv)}%</div></div>
+      <div><div class="kc-lbl">Late Mort%</div><div class="kc-val" style="font-size:19px;color:${cm(ms.mL,3,5)}">${f(ms.mL)}%</div></div>
+      <div><div class="kc-lbl">Issues</div><div class="kc-val" style="font-size:19px;color:${ms.iss>0?'#ffb940':'#00cca8'}">${ms.iss}</div></div>
+    </div>
+  </div>`).join('');
+  if(mS.length===2){const cg=mS.find(m=>m.m==='CG')||mS[0];const int=mS.find(m=>m.m==='INTERNAL')||mS[1];const bd=((cg.bpi-int.bpi)/int.bpi*100);document.getElementById('mgmt-ins').innerHTML=`<div class="ins ${cg.bpi>int.bpi?'':'warn'}"><b>BPI:</b> CG avg <b>${Math.round(cg.bpi)}</b> vs Internal <b>${Math.round(int.bpi)}</b> — ${Math.abs(bd).toFixed(1)}% ${cg.bpi>int.bpi?'CG advantage':'Internal advantage'}.</div><div class="ins ${cg.mT<int.mT?'':'warn'}"><b>Mortality:</b> CG total mort <b>${f(cg.mT)}%</b> (${cg.iss} issues) vs Internal <b>${f(int.mT)}%</b> (${int.iss} issues).</div>`;}
+  else document.getElementById('mgmt-ins').innerHTML='';
+  const labels=mS.map(m=>lbl[m.m]||m.m);
+  groupBar('ch-mg-mort',labels,[{label:'7D Mort %',color:'#ff8c3a',values:mS.map(m=>m.m7)},{label:'Late Mort %',color:'#a87ff5',values:mS.map(m=>m.mL)},{label:'Total Mort %',color:'#ff3f5e',values:mS.map(m=>m.mT)}],200);
+  groupBar('ch-mg-perf',labels,[{label:'FCR×100',color:'#ffb940',values:mS.map(m=>m.fcr*100)},{label:'BPI÷10',color:'#4b80ff',values:mS.map(m=>m.bpi/10)},{label:'ADG(g)',color:'#00cca8',values:mS.map(m=>m.adg)}],200);
+  const s=sc('ch-mg-strip',130);if(s){const{ctx,W,H}=s;const allBPI=FD.map(d=>d.BPI).filter(v=>v>0);if(!allBPI.length)return;const mn=Math.min(...allBPI)-10,mx=Math.max(...allBPI)+10;const xB=v=>52+(v-mn)/(mx-mn)*(W-72);[320,380].forEach((th,i)=>{const x=xB(th);ctx.strokeStyle=i===0?'rgba(255,185,64,.5)':'rgba(0,204,168,.5)';ctx.setLineDash([4,3]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,10);ctx.lineTo(x,H-16);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=i===0?'#ffb940':'#00cca8';ctx.font='9px Segoe UI';ctx.textAlign='center';ctx.fillText(th,x,9);});['CG','INTERNAL'].forEach((m,mi)=>{if(!FD.some(d=>d.Management===m))return;const y=30+mi*44;ctx.fillStyle='#5e7299';ctx.font='10px Segoe UI';ctx.textAlign='right';ctx.fillText(m==='CG'?'CG':'Internal',48,y+4);FD.filter(d=>d.Management===m&&d.BPI>0).forEach(d=>{ctx.beginPath();ctx.arc(xB(d.BPI),y+(Math.random()-.5)*10,3.5,0,Math.PI*2);ctx.fillStyle=MC[m]+'aa';ctx.fill();});const av2=avP(FD.filter(d=>d.Management===m),'BPI');if(av2){const ax=xB(av2);ctx.strokeStyle=MC[m];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ax,y-13);ctx.lineTo(ax,y+13);ctx.stroke();ctx.fillStyle=MC[m];ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('avg',ax,y-15);}});}
+}
+
+// ════════════════════════════════════════════════
+// DETAIL TABLE
+// ════════════════════════════════════════════════
+function renderDetailTable(){
+  const sk=document.getElementById('tbl-sort').value;
+  let rows=[...FD];
+  if(sk==='BPI_asc')rows.sort((a,b)=>(a.BPI||0)-(b.BPI||0));
+  else if(sk==='Livability_pct_asc')rows.sort((a,b)=>a.Livability_pct-b.Livability_pct);
+  else if(sk)rows.sort((a,b)=>b[sk]-a[sk]);
+  document.getElementById('detail-count').textContent=rows.length+' of '+GDATA.length+' houses';
+  document.getElementById('detail-tbody').innerHTML=rows.map(d=>`<tr>
+    <td>${d.Batch}</td><td><b>${d.Farm}</b></td><td>${d.House}</td>
+    <td>${mgmtPill(d.Management)}</td><td>${feedPill(d.Feed)}</td><td>G${d.Grow}</td>
+    <td>${breedBadge(d.Breeder_Class)}</td>
+    <td style="color:${BCC[d.Breeder_Class]}">${d.Breeder_Age!=null?f(d.Breeder_Age,1)+' wk':'—'}</td>
+    <td style="color:${cm(d['7D_Mort_pct'],1,2)}">${f(d['7D_Mort_pct'])}%</td>
+    <td style="color:${cm(d.Late_Mort_pct,3,5)}">${f(d.Late_Mort_pct)}%</td>
+    <td>${f(d.LateShare_pct)}%</td>
+    <td style="color:${cm(d.Total_Mort_pct,4.5,6)}">${f(d.Total_Mort_pct)}%</td>
+    <td style="color:${cp(d.Livability_pct,95.5,94,true)}">${f(d.Livability_pct)}%</td>
+    <td style="color:${cm(d.DOA_pct,0.5,1)}">${f(d.DOA_pct)}%</td>
+    <td style="color:${cp(d.FCR,1.5,1.6)}">${d.FCR?f(d.FCR):'—'}</td>
+    <td style="color:${d.ADG>=60?'#00cca8':d.ADG>=55?'#ffb940':d.ADG>0?'#ff3f5e':'var(--mu)'}">${d.ADG>0?f(d.ADG,1):'—'}</td>
+    <td>${d.ALW?f(d.ALW):'—'}</td>
+    <td style="color:${cp(d.BPI,380,320,true)}">${d.BPI?Math.round(d.BPI):'—'}</td>
+    <td>${rcPill(d.Root_Cause)}</td>
+    <td style="color:var(--mu);font-size:10px;white-space:normal;max-width:140px;">${d.Action}</td>
+  </tr>`).join('');
+}
+
+
+
+// ════ RESIZE HANDLER ════
+let _rTimer;
+window.addEventListener('resize',()=>{clearTimeout(_rTimer);_rTimer=setTimeout(redrawTab,150);});
+</script>
+</body>
+</html>
